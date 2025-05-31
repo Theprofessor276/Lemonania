@@ -1,0 +1,159 @@
+body {
+  background-image: url(background.jpg)
+}
+p {
+  color: black;
+}
+h1 {
+  font-weight: bold;
+}
+
+#boc {
+  background-color: #FFF8DC;
+  width:85%;
+  padding: 10px;
+  margin: auto;
+  color: #DAA520;
+  border-radius: 1%
+}
+
+h1 {
+  color: #FFD700;
+}
+
+h2 {
+  color: #32CD32;
+}
+
+.box2 {
+  margin: auto;
+  
+  width: 100%;
+}
+
+nav {
+  display: block;
+  margin: auto;
+  clear: both;
+  text-align: center;
+  padding: 10px;
+  border: 1px black solid;
+  align-content: center;
+  float: center;
+  
+}
+
+footer {
+  border: 1px black solid;
+}
+
+main {
+  border: 1px black solid;
+}
+
+.navbtn {
+  display: table-cell;
+  margin: auto;
+  text-align: center;
+  padding: 10px;
+  border: 1px black solid;
+  background-color: #FFDEAD;
+  float: center;
+  align-content: center;
+  color: black;
+  text-decoration: none;
+}
+
+section {
+  display: table-cell;
+  margin: auto;
+  width: 100%;
+  height: 100%;
+  border: 1px black solid;
+  align-self: center;
+	max-width: none;
+}
+.s1{
+  background-color: #FFFACD;
+  width: 50%;
+  padding: 5px;
+  margin: 5px;
+}
+
+.s2 {
+  background-color: #FFFACD;
+  width: 50%;
+  padding: 5px;
+  margin: 5px;
+}
+
+.s3 {
+  background-color: #FAFAD2;
+  width: 25%;
+  padding: 5px;
+  margin: 5px;
+}
+
+.s4 {
+  background-color: #FAFAD2;
+  width: 25%;
+  padding: 5px;
+  margin: 5px;
+}
+ul {
+  list-style-image: url(Lemon.png);
+}
+
+.order {
+  text-decoration: none;
+  font-family: inherit;
+  color: #DAA520;
+}
+blockquote {
+  font-family: "Lemon", serif;
+  font-style: normal;
+}
+
+.navbtn:hover {
+  font-style: italic;
+  text-decoration: underline;
+  color: #282828;
+}
+
+.retrybtn {
+  display: table;
+  margin: auto;
+  padding: 10px;
+  text-align: center;
+  border: 1px black solid;
+  background-color: #FFDEAD;
+  float: center;
+  align-content: center;
+}
+
+.retrybtn:hover {
+  display: table;
+  margin: auto;
+  padding: 10px;
+  text-align: center;
+  border: 1px black solid;
+  background-color: #FFDEAD;
+  float: center;
+  align-content: center;
+}
+
+img {
+  clear: both;
+}
+
+.hidden {
+  text-decoration: none;
+  font-family: inherit;
+  color: #FFD700;
+  font-weight: bold;
+}
+
+
+
+
+
