@@ -18,13 +18,26 @@
       <nav>
         <p>
           <a href="menu.html" title="menu" class="navbtn">View menu</a>
-        
           <a href="aboutes.html" title="About us" class="navbtn">About us</a>
-        
           <a href="index.html" title="home" class="navbtn">Home</a>
-
           <a href="merch.html" title="Merch" class="navbtn">Merch</a>
           <a href="eula.html" title="Eula" class="navbtn">Eula</a>
+          <a href="cart.html" id="cart-link" title="Cart" class="navbtn" style="position:relative;display:inline-block;">
+            <img src="cart.png" alt="Cart" style="width:32px;vertical-align:middle;">
+            <span id="cart-count" style="
+              display:inline-block;
+              min-width:20px;
+              background:red;
+              color:white;
+              border-radius:10px;
+              font-size:12px;
+              text-align:center;
+              position:absolute;
+              top:-5px;
+              right:-10px;
+              padding:2px 6px;
+            ">0</span>
+          </a>
         </p>
       </nav>
       <main>
@@ -36,46 +49,41 @@
         <section class="s3">
           <h2>Entrees</h2>
           <ul>
-            <li><a class="order" href="error.html">Giant Lemon<br>- $14.99, 250 cal.</a></li>
-            <li><a class="order" href="error.html">Lemon<br>- $9.99, 180 cal.</a></li>
-            <li><a class="order" href="error.html">Pan fried Lemon<br>- $12.49, 220 cal.</a></li>
-            <li><a class="order" href="error.html">Violent Lemon<br>- $15.99, 270 cal.</a></li>
-            <li><a class="order" href="error.html">Purified Lemon<br>- $13.49, 210 cal.</a></li>
-            <li><a class="order" href="error.html">Multiple lemons<br>- $17.99, 300 cal.</a></li>
+            <li><a class="order" href="#" data-item='{"id":"giant-lemon","name":"Giant Lemon","price":14.99}'>Giant Lemon<br>- $14.99, 250 cal.</a></li>
+            <li><a class="order" href="#" data-item='{"id":"lemon","name":"Lemon","price":9.99}'>Lemon<br>- $9.99, 180 cal.</a></li>
+            <li><a class="order" href="#" data-item='{"id":"pan-fried-lemon","name":"Pan fried Lemon","price":12.49}'>Pan fried Lemon<br>- $12.49, 220 cal.</a></li>
+            <li><a class="order" href="#" data-item='{"id":"violent-lemon","name":"Violent Lemon","price":15.99}'>Violent Lemon<br>- $15.99, 270 cal.</a></li>
+            <li><a class="order" href="#" data-item='{"id":"purified-lemon","name":"Purified Lemon","price":13.49}'>Purified Lemon<br>- $13.49, 210 cal.</a></li>
+            <li><a class="order" href="#" data-item='{"id":"multiple-lemons","name":"Multiple lemons","price":17.99}'>Multiple lemons<br>- $17.99, 300 cal.</a></li>
           </ul>
-          
         </section>
         <section class="s4">
           <h2>Appatisers</h2>
           <ul class="dropdown">
-            <li><a class="order" href="error.html">Fried Lemon<br>- $5.99, 120 cal.</a></li>
-            <li><a class="order" href="error.html">Freeze dried Lemon<br>- $4.49, 90 cal.</a></li>
-            <li><a class="order" href="error.html">Frenched Lemons<br>- $6.99, 150 cal.</a></li>
-            <li><a class="order" href="error.html">Lemon bites<br>- $5.49, 110 cal.</a></li>
+            <li><a class="order" href="#" data-item='{"id":"fried-lemon","name":"Fried Lemon","price":5.99}'>Fried Lemon<br>- $5.99, 120 cal.</a></li>
+            <li><a class="order" href="#" data-item='{"id":"freeze-dried-lemon","name":"Freeze dried Lemon","price":4.49}'>Freeze dried Lemon<br>- $4.49, 90 cal.</a></li>
+            <li><a class="order" href="#" data-item='{"id":"frenched-lemons","name":"Frenched Lemons","price":6.99}'>Frenched Lemons<br>- $6.99, 150 cal.</a></li>
+            <li><a class="order" href="#" data-item='{"id":"lemon-bites","name":"Lemon bites","price":5.49}'>Lemon bites<br>- $5.49, 110 cal.</a></li>
           </ul>
-          
         </section>
         <section class="s3">
           <h2>Beverages</h2>
           <ul>
-            <li><a class="order" href="error.html">Lemon Lemonaid<br>- $3.99, 140 cal.</a>
-              <!-- extra sour-->
-            </li>
+            <li><a class="order" href="#" data-item='{"id":"lemon-lemonade","name":"Lemon Lemonaid","price":3.99}'>Lemon Lemonaid<br>- $3.99, 140 cal.</a></li>
           </ul>
-          
         </section>
         <section class="s4">
           <h2>Deserts</h2>
           <ul>
-            <li><a class="order" href="error.html">Caramelised Lemon<br>- $6.99, 160 cal.</a>
-            <li><a class="order" href="error.html">Lemon cake<br>- $7.99, 250 cal.</a>
-            <li><a class="order" href="error.html">Lemon cookie<br>- $5.49, 200 cal.</a>
-            <li><a class="order" href="error.html">Lemon singularity<br>- $9.99, 280 cal.</a></li>
+            <li><a class="order" href="#" data-item='{"id":"caramelised-lemon","name":"Caramelised Lemon","price":6.99}'>Caramelised Lemon<br>- $6.99, 160 cal.</a></li>
+            <li><a class="order" href="#" data-item='{"id":"lemon-cake","name":"Lemon cake","price":7.99}'>Lemon cake<br>- $7.99, 250 cal.</a></li>
+            <li><a class="order" href="#" data-item='{"id":"lemon-cookie","name":"Lemon cookie","price":5.49}'>Lemon cookie<br>- $5.49, 200 cal.</a></li>
+            <li><a class="order" href="#" data-item='{"id":"lemon-singularity","name":"Lemon singularity","price":9.99}'>Lemon singularity<br>- $9.99, 280 cal.</a></li>
           </ul>
-          
         </section>
       </div>
       <footer>Created By Alan Zachary O'Keefe &copy; 2027</footer>
     </div>
+    <script src="cart.js"></script>
   </body>
 </html>
