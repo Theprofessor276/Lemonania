@@ -8,8 +8,29 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Lemon&family=Lobster&display=swap" rel="stylesheet">
      <link rel="icon" type="image/svg+xml" href="Lemon.png">
+      <style>
+      .cart {
+        position: fixed; top: 20px; right: 20px; font-size: 24px; z-index: 100;
+      }
+      .cart-icon { position: relative; cursor: pointer; }
+      .cart-count {
+        position: absolute; top: -10px; right: -10px;
+        background: red; color: white;
+        border-radius: 50%; padding: 2px 6px; font-size: 14px;
+      }
+      .order-btn {
+        background: #ffecb3; border: 1px solid #ffd54f; padding: 6px 10px;
+        border-radius: 4px; cursor: pointer; margin-top: 6px; display: inline-block;
+      }
+    </style>
   </head>
   <body>
+    <div class="cart" onclick="goToCart()">
+      <div class="cart-icon">
+        <img src="cart.png" alt="Cart" style="width:32px;vertical-align:middle;">
+        <div class="cart-count" id="cartCount">0</div>
+      </div>
+    </div>
     <div id="boc">
       <header>
         <img src="banner.png" title="Lemonania banner" alt="Lemonania banner" style="width:100%">
@@ -47,5 +68,49 @@
       </div>
       <footer>Created By Alan Zachary O'Keefe &copy; 2027</footer>
     </div>
+    <script>
+    function loadCart() {
+      try {
+        return JSON.parse(localStorage.getItem('cart')) || {};
+      } catch {
+        return {};
+      }
+    }
+
+    function saveCart(cart) {
+      localStorage.setItem('cart', JSON.stringify(cart));
+    }
+
+    function addToCart(itemName, price) {
+      const cart = loadCart();
+
+      if (!cart[itemName]) {
+        cart[itemName] = {
+          quantity: 1,
+          price: price
+        };
+      } else {
+        cart[itemName].quantity += 1;
+      }
+
+      saveCart(cart);
+      updateCartCount();
+    }
+
+    function updateCartCount() {
+      const cart = loadCart();
+      let count = 0;
+      for (const item in cart) {
+        count += cart[item].quantity || 0;
+      }
+      document.getElementById('cartCount').innerText = count;
+    }
+
+    function goToCart() {
+      window.location.href = "cart.html";
+    }
+
+    updateCartCount(); // Run on page load
+  </script>
   </body>
 </html>

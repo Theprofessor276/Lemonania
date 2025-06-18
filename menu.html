@@ -58,27 +58,27 @@
           <ul>
             <li>
               Giant Lemon<br>- $14.99, 250 cal.
-              <button class="order-btn" onclick="addToCart('Giant Lemon')">Add to Cart</button>
+              <button class="order-btn" onclick="addToCart('Giant Lemon', 14.99)">Add to Cart</button>
             </li>
             <li>
               Lemon<br>- $9.99, 180 cal.
-              <button class="order-btn" onclick="addToCart('Lemon')">Add to Cart</button>
+              <button class="order-btn" onclick="addToCart('Lemon', 9.99)">Add to Cart</button>
             </li>
             <li>
               Pan fried Lemon<br>- $12.49, 220 cal.
-              <button class="order-btn" onclick="addToCart('Pan fried Lemon')">Add to Cart</button>
+              <button class="order-btn" onclick="addToCart('Pan fried Lemon', 12.49)">Add to Cart</button>
             </li>
             <li>
               Violent Lemon<br>- $15.99, 270 cal.
-              <button class="order-btn" onclick="addToCart('Violent Lemon')">Add to Cart</button>
+              <button class="order-btn" onclick="addToCart('Violent Lemon', 15.99)">Add to Cart</button>
             </li>
             <li>
               Purified Lemon<br>- $13.49, 210 cal.
-              <button class="order-btn" onclick="addToCart('Purified Lemon')">Add to Cart</button>
+              <button class="order-btn" onclick="addToCart('Purified Lemon', 13.49)">Add to Cart</button>
             </li>
             <li>
               Multiple lemons<br>- $17.99, 300 cal.
-              <button class="order-btn" onclick="addToCart('Multiple lemons')">Add to Cart</button>
+              <button class="order-btn" onclick="addToCart('Multiple lemons', 17.99)">Add to Cart</button>
             </li>
           </ul>
         </section>
@@ -87,19 +87,19 @@
           <ul class="dropdown">
             <li>
               Fried Lemon<br>- $5.99, 120 cal.
-              <button class="order-btn" onclick="addToCart('Fried Lemon')">Add to Cart</button>
+              <button class="order-btn" onclick="addToCart('Fried Lemon',5.99)">Add to Cart</button>
             </li>
             <li>
               Freeze dried Lemon<br>- $4.49, 90 cal.
-              <button class="order-btn" onclick="addToCart('Freeze dried Lemon')">Add to Cart</button>
+              <button class="order-btn" onclick="addToCart('Freeze dried Lemon',4.49)">Add to Cart</button>
             </li>
             <li>
               Frenched Lemons<br>- $6.99, 150 cal.
-              <button class="order-btn" onclick="addToCart('Frenched Lemons')">Add to Cart</button>
+              <button class="order-btn" onclick="addToCart('Frenched Lemons',6.99)">Add to Cart</button>
             </li>
             <li>
               Lemon bites<br>- $5.49, 110 cal.
-              <button class="order-btn" onclick="addToCart('Lemon bites')">Add to Cart</button>
+              <button class="order-btn" onclick="addToCart('Lemon bites',5.49)">Add to Cart</button>
             </li>
           </ul>
         </section>
@@ -108,7 +108,7 @@
           <ul>
             <li>
               Lemon Lemonaid<br>- $3.99, 140 cal.
-              <button class="order-btn" onclick="addToCart('Lemon Lemonaid')">Add to Cart</button>
+              <button class="order-btn" onclick="addToCart('Lemon Lemonaid',3.99)">Add to Cart</button>
             </li>
           </ul>
         </section>
@@ -117,43 +117,69 @@
           <ul>
             <li>
               Caramelised Lemon<br>- $6.99, 160 cal.
-              <button class="order-btn" onclick="addToCart('Caramelised Lemon')">Add to Cart</button>
+              <button class="order-btn" onclick="addToCart('Caramelised Lemon', 6.99)">Add to Cart</button>
             </li>
             <li>
               Lemon cake<br>- $7.99, 250 cal.
-              <button class="order-btn" onclick="addToCart('Lemon cake')">Add to Cart</button>
+              <button class="order-btn" onclick="addToCart('Lemon cake', 7.99)">Add to Cart</button>
             </li>
             <li>
               Lemon cookie<br>- $5.49, 200 cal.
-              <button class="order-btn" onclick="addToCart('Lemon cookie')">Add to Cart</button>
+              <button class="order-btn" onclick="addToCart('Lemon cookie', 5.49)">Add to Cart</button>
             </li>
             <li>
               Lemon singularity<br>- $9.99, 280 cal.
-              <button class="order-btn" onclick="addToCart('Lemon singularity')">Add to Cart</button>
+              <button class="order-btn" onclick="addToCart('Lemon singularity', 9.99)">Add to Cart</button>
             </li>
           </ul>
         </section>
       </div>
       <footer>Created By Alan Zachary O'Keefe &copy; 2027</footer>
     </div>
-    <script>
-      // Load existing cart count
-      let cart = JSON.parse(localStorage.getItem('cart')) || [];
+   <script>
+    function loadCart() {
+      try {
+        return JSON.parse(localStorage.getItem('cart')) || {};
+      } catch {
+        return {};
+      }
+    }
+
+    function saveCart(cart) {
+      localStorage.setItem('cart', JSON.stringify(cart));
+    }
+
+    function addToCart(itemName, price) {
+      const cart = loadCart();
+
+      if (!cart[itemName]) {
+        cart[itemName] = {
+          quantity: 1,
+          price: price
+        };
+      } else {
+        cart[itemName].quantity += 1;
+      }
+
+      saveCart(cart);
       updateCartCount();
+    }
 
-      function addToCart(itemName) {
-        cart.push(itemName);
-        localStorage.setItem('cart', JSON.stringify(cart));
-        updateCartCount();
+    function updateCartCount() {
+      const cart = loadCart();
+      let count = 0;
+      for (const item in cart) {
+        count += cart[item].quantity || 0;
       }
+      document.getElementById('cartCount').innerText = count;
+    }
 
-      function updateCartCount() {
-        document.getElementById('cartCount').innerText = cart.length;
-      }
+    function goToCart() {
+      window.location.href = "cart.html";
+    }
 
-      function goToCart() {
-        window.location.href = "cart.html";
-      }
-    </script>
+    updateCartCount(); // Run on page load
+  </script>
+
   </body>
 </html>
