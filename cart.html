@@ -1,80 +1,60 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <link rel="stylesheet" href="style.css">
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Your Cart - Lemonania</title>
-    <link rel="icon" type="image/svg+xml" href="Lemon.png">
-    <link href="https://fonts.googleapis.com/css2?family=Lemon&family=Lobster&display=swap" rel="stylesheet">
-  </head>
-  <body>
-    <div id="boc">
-      <header>
-        <img src="banner.png" title="Lemonania banner" alt="Lemonania banner" style="width:100%">
-      </header>
-      <nav>
-        <p>
-          <a href="menu.html" class="navbtn">View menu</a>
-          <a href="aboutes.html" class="navbtn">About us</a>
-          <a href="index.html" class="navbtn">Home</a>
-          <a href="merch.html" class="navbtn">Merch</a>
-          <a href="eula.html" class="navbtn">Eula</a>
-          <a href="cart.html" id="cart-link" class="navbtn" style="position:relative;display:inline-block;">
-            <img src="cart.png" alt="Cart" style="width:32px;vertical-align:middle;">
-            <span id="cart-count" style="
-              display:inline-block;
-              min-width:20px;
-              background:red;
-              color:white;
-              border-radius:10px;
-              font-size:12px;
-              text-align:center;
-              position:absolute;
-              top:-5px;
-              right:-10px;
-              padding:2px 6px;
-            ">0</span>
-          </a>
-        </p>
-      </nav>
-      <main>
-        <h1>Your Cart</h1>
-        <div id="cart-items"></div>
-      </main>
-      <footer>Created By Alan Zachary O'Keefe &copy; 2027</footer>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Your Cart - Lemonania</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/svg+xml" href="Lemon.png">
+  <style>
+    body { font-family: sans-serif; padding: 30px; background: #fafafa; }
+    .cart { position: fixed; top: 20px; right: 20px; font-size: 24px; }
+    .cart-icon { position: relative; cursor: pointer; }
+    .cart-count {
+      position: absolute; top: -10px; right: -10px;
+      background: red; color: white;
+      border-radius: 50%; padding: 2px 6px; font-size: 14px;
+    }
+    .item { background: white; padding: 10px; margin: 10px 0; border: 1px solid #ccc; }
+    .back { margin-bottom: 20px; cursor: pointer; color: blue; text-decoration: underline; display: inline-block; }
+  </style>
+</head>
+<body>
+  <div class="cart" onclick="goToCart()">
+    <div class="cart-icon">
+      <img src="cart.png" alt="Cart" style="width:32px;vertical-align:middle;">
+      <div class="cart-count" id="cartCount">0</div>
     </div>
-    <script src="cart.js"></script>
-    <script>
-      // Render cart contents
-      function renderCart() {
-        let cart = {};
-        try { cart = JSON.parse(getCookie('fakeCart') || '{}'); } catch {}
-        let container = document.getElementById('cart-items');
-        if (!container) return;
-        if (Object.keys(cart).length === 0) {
-          container.innerHTML = "<p>Your cart is empty.</p>";
-          return;
-        }
-        let html = `<table style="width:100%;max-width:400px;"><tr><th>Item</th><th>Qty</th><th>Price</th><th>Subtotal</th></tr>`;
-        let total = 0;
-        for (let id in cart) {
-          let item = cart[id];
-          let sub = item.price * item.qty;
-          total += sub;
-          html += `<tr>
-            <td>${item.name}</td>
-            <td>${item.qty}</td>
-            <td>$${item.price.toFixed(2)}</td>
-            <td>$${sub.toFixed(2)}</td>
-          </tr>`;
-        }
-        html += `<tr><td colspan="3" style="text-align:right;font-weight:bold;">Total:</td><td style="font-weight:bold;">$${total.toFixed(2)}</td></tr></table>`;
-        container.innerHTML = html;
-      }
-      document.addEventListener('DOMContentLoaded', () => {
-        renderCart();
+  </div>
+  <div class="back" onclick="goBack()">← Back to Menu</div>
+  <h2>Your Cart</h2>
+  <div id="cartItems"></div>
+  <script>
+    let cart = JSON.parse(localStorage.getItem('cart')) || [];
+    updateCartCount();
+
+    function updateCartCount() {
+      document.getElementById('cartCount').innerText = cart.length;
+    }
+
+    function goToCart() {
+      // Already on cart, maybe reload
+      location.href = "cart.html";
+    }
+    function goBack() {
+      location.href = "menu.html";
+    }
+
+    const cartDiv = document.getElementById('cartItems');
+    if (cart.length === 0) {
+      cartDiv.innerText = "Your cart is empty.";
+    } else {
+      cart.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'item';
+        div.innerText = item;
+        cartDiv.appendChild(div);
       });
-    </script>
-  </body>
+    }
+  </script>
+</body>
 </html>
