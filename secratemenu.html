@@ -35,18 +35,12 @@
       <header>
         <img src="banner.png" title="Lemonania banner" alt="Lemonania banner" style="width:100%">
       </header>
-      <nav>
-        <p>
-          <a href="menu.html" title="menu" class="navbtn">View menu</a>
-
-          <a href="aboutes.html" title="About us" class="navbtn">About us</a>
-
-          <a href="index.html" title="home" class="navbtn">Home</a>
-
-          <a href="merch.html" title="Merch" class="navbtn">Merch</a>
-          <a href="eula.html" title="Eula" class="navbtn">Eula</a>
-        </p>
-      </nav>
+<div id="nav"></div>
+<script>
+  fetch("nav.html")
+    .then(r => r.text())
+    .then(html => { document.getElementById("nav").innerHTML = html; });
+</script>
       <main>
         <h1>MENU</h1>
         <blockquote>Lemonania’s Secret Menu is reserved for the boldest citrus enthusiasts, featuring mysterious and legendary lemon creations that defy logic, taste, and possibly reality. From the elusive Invisible Lemon to the enigmatic Forbidden Lemon, each item carries an air of exclusivity—if you dare to try them. Whether you're intrigued by the Quantum Lemon, existing in an uncertain state until your first bite, or the brooding Lemon Noir, shrouded in mystery, this menu promises an unforgettable adventure in zest. Hidden from the uninitiated, these secret dishes are for those who truly understand that lemon is not just a fruit—it’s a way of life. 🍋✨</blockquote>
