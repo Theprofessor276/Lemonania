@@ -34,51 +34,7 @@
       </main>
       <!--That was a lie -->
       <p style="text-align: center;"><a class='retrybtn' href="error.html">Retry</a></p>
-      
     </div>
-    <script>
-    function loadCart() {
-      try {
-        return JSON.parse(localStorage.getItem('cart')) || {};
-      } catch {
-        return {};
-      }
-    }
-
-    function saveCart(cart) {
-      localStorage.setItem('cart', JSON.stringify(cart));
-    }
-
-    function addToCart(itemName, price) {
-      const cart = loadCart();
-
-      if (!cart[itemName]) {
-        cart[itemName] = {
-          quantity: 1,
-          price: price
-        };
-      } else {
-        cart[itemName].quantity += 1;
-      }
-
-      saveCart(cart);
-      updateCartCount();
-    }
-
-    function updateCartCount() {
-      const cart = loadCart();
-      let count = 0;
-      for (const item in cart) {
-        count += cart[item].quantity || 0;
-      }
-      document.getElementById('cartCount').innerText = count;
-    }
-
-    function goToCart() {
-      window.location.href = "cart.html";
-    }
-
-    updateCartCount(); // Run on page load
-  </script>
+    <script src="script.js"></script>
   </body>
 </html>
