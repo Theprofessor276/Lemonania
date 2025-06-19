@@ -1,587 +1,368 @@
-// Robust Lemonania shop.js: Cart, Lemon Points, Rewards, Coupons and click sounds
+// === Lemonania Account System Additions Start ===
 
-// --- Coupon System Import ---
-if (typeof getCouponByCode === "undefined") {
-  // Try to load coupon-codes.js dynamically if not loaded
-  var script = document.createElement('script');
-  script.src = "coupon-codes.js";
-  document.head.appendChild(script);
-}
+// --- Constants & Utility ---
+const LS_KEY_USERS = "lemonUsers"; // { username: {email, verified, pfp, ...} }
+const LS_KEY_CURRENT = "lemonCurrentUser";
 
-// --- Lemon Points Utilities ---
-function getLemonPoints() {
-  if (localStorage.getItem('popPopActive') === 'true') return null;
-  return Math.max(0, parseInt(localStorage.getItem('lemonPoints') || '0', 10));
-}
-function setLemonPoints(points) {
-  if (localStorage.getItem('popPopActive') === 'true') {
-    localStorage.setItem('lemonPoints', 'no');
-    updateLemonPointsDisplay();
-    return;
-  }
-  localStorage.setItem('lemonPoints', String(Math.max(0, Math.floor(points))));
-}
-function addLemonPoints(amount) {
-  if (localStorage.getItem('popPopActive') === 'true') {
-    localStorage.setItem('lemonPoints', 'no');
-    updateLemonPointsDisplay();
-    return;
-  }
-  setLemonPoints(getLemonPoints() + Math.max(0, Math.floor(amount)));
-}
-function spendLemonPoints(amount) {
-  if (localStorage.getItem('popPopActive') === 'true') {
-    localStorage.setItem('lemonPoints', 'no');
-    updateLemonPointsDisplay();
-    return false;
-  }
-  let current = getLemonPoints();
-  let spend = Math.max(0, Math.floor(amount));
-  if (current >= spend) {
-    setLemonPoints(current - spend);
-    return true;
-  }
-  return false;
-}
-function updateLemonPointsDisplay() {
-  const elem = document.getElementById('lemonPointsDisplay');
-  if (elem) {
-    if (localStorage.getItem('popPopActive') === 'true' || localStorage.getItem('lemonPoints') === 'no') {
-      elem.innerText = 'no';
-    } else {
-      elem.innerText = getLemonPoints();
-    }
-  }
-}
+// --- EmailJS Config (use your actual IDs!) ---
+const EMAILJS_SERVICE = "service_3uepw1g";
+const EMAILJS_TEMPLATE = "template_bjwslao";
+const EMAILJS_PUBLIC_KEY = "MPEttrKFI6fFs8iNx";
+// Add your new template ID for verified email below:
+const EMAILJS_TEMPLATE_VERIFIED = "template_1zqrydx"; // <-- CHANGE THIS TO YOUR NEW TEMPLATE ID!
 
-// --- Cart LocalStorage Utilities ---
-function loadCart() {
+function getAllUsers() {
   try {
-    return JSON.parse(localStorage.getItem('cart')) || {};
-  } catch {
-    return {};
-  }
+    return JSON.parse(localStorage.getItem(LS_KEY_USERS)) || {};
+  } catch { return {}; }
 }
-function saveCart(cart) {
-  localStorage.setItem('cart', JSON.stringify(cart));
+function saveAllUsers(users) {
+  localStorage.setItem(LS_KEY_USERS, JSON.stringify(users));
 }
-function calcCartSubtotal() {
-  const cart = loadCart();
-  let total = 0;
-  for (const item in cart) {
-    const entry = cart[item];
-    const quantity = entry.quantity ?? 0;
-    const price = entry.price ?? 0;
-    total += price * quantity;
-  }
-  // If pop pop, multiply price by 5
-  if (localStorage.getItem('popPopActive') === 'true') {
-    total *= 5;
-  }
-  return total;
+function getUser(username) {
+  const users = getAllUsers();
+  return users[username] || null;
 }
-
-// --- Cart Count Utility ---
-function updateCartCount() {
-  const cart = loadCart();
-  let count = 0;
-  for (const item in cart) {
-    count += cart[item].quantity || 0;
-  }
-  const countElem = document.getElementById('cartCount');
-  if (countElem) countElem.innerText = count;
+function setUser(username, userObj) {
+  const users = getAllUsers();
+  users[username] = userObj;
+  saveAllUsers(users);
+}
+function getCurrentUser() {
+  return localStorage.getItem(LS_KEY_CURRENT) || null;
+}
+function setCurrentUser(username) {
+  if (username) localStorage.setItem(LS_KEY_CURRENT, username);
+  else localStorage.removeItem(LS_KEY_CURRENT);
 }
 
-// --- Add to Cart ---
-function addToCart(itemName, price) {
-  const cart = loadCart();
-  if (!cart[itemName]) {
-    cart[itemName] = {
-      quantity: 1,
-      price: parseFloat(price)
-    };
+// --- Fake Email Verification using EmailJS ---
+function sendVerificationEmail(toEmail, username, code, cb) {
+  const expiry = new Date(Date.now() + 15*60*1000)
+    .toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  fetch("https://api.emailjs.com/api/v1.0/email/send", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      service_id: EMAILJS_SERVICE,
+      template_id: EMAILJS_TEMPLATE,
+      user_id: EMAILJS_PUBLIC_KEY,
+      template_params: {
+        'to_email': toEmail,
+        'username': username,
+        'passcode': code,
+        'time': expiry
+      }
+    })
+  }).then(r => r.ok ? cb(true) : cb(false))
+    .catch(e => cb(false));
+}
+
+// --- Send Account Verified Email ---
+function sendAccountVerifiedEmail(toEmail, username, cb) {
+  fetch("https://api.emailjs.com/api/v1.0/email/send", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      service_id: EMAILJS_SERVICE,
+      template_id: EMAILJS_TEMPLATE_VERIFIED,
+      user_id: EMAILJS_PUBLIC_KEY,
+      template_params: {
+        'to_email': toEmail,
+        'username': username
+      }
+    })
+  })
+  .then(r => r.ok ? cb(true) : cb(false))
+  .catch(e => cb(false));
+}
+
+// --- UI Functions for Account Page ---
+function renderAccountArea() {
+  const user = getCurrentUser();
+  if (!user) {
+    if (!document.getElementById('accountArea')) return;
+    document.getElementById('accountArea').innerHTML = `
+    <h2>Login or Register</h2>
+    <form class="account-form" id="accountForm" onsubmit="return false">
+      <label for="username">Username:</label>
+      <input type="text" id="username" maxlength="24" required>
+      <label for="email">Email (for fake verification):</label>
+      <input type="email" id="email" maxlength="80" required>
+      <label for="password">Password:</label>
+      <input type="password" id="password" maxlength="32" required>
+      <button type="button" onclick="registerUser()">Register</button>
+      <button type="button" onclick="loginUser()">Login</button>
+      <div id="accountMsg"></div>
+    </form>`;
   } else {
-    cart[itemName].quantity += 1;
-  }
-  saveCart(cart);
-  updateCartCount();
-}
-
-// --- Go to Cart ---
-function goToCart() {
-  window.location.href = "cart.html";
-}
-
-// --- Go Back (for cart page) ---
-function goBack() {
-  history.back();
-}
-
-// --- Decrease Item in Cart (for cart page) ---
-function decreaseItem(itemName) {
-  playClick();
-  const cart = loadCart();
-  if (cart[itemName]) {
-    cart[itemName].quantity -= 1;
-    if (cart[itemName].quantity <= 0) {
-      delete cart[itemName];
-    }
-    saveCart(cart);
-    if (typeof renderCart === "function") renderCart();
-    updateCartCount();
-  }
-}
-
-// --- Increase Item in Cart (for cart page) ---
-function increaseItem(itemName) {
-  playClick();
-  const cart = loadCart();
-  if (cart[itemName]) {
-    cart[itemName].quantity += 1;
-    saveCart(cart);
-    if (typeof renderCart === "function") renderCart();
-    updateCartCount();
-  }
-}
-
-// --- Clear Cart (for cart page) ---
-function clearCart() {
-  playClick();
-  if (confirm("Are you sure you want to clear your cart?")) {
-    localStorage.removeItem('cart');
-    if (typeof renderCart === "function") renderCart();
-    updateCartCount();
-  }
-}
-
-// --- Format Price Utility ---
-function formatPrice(num) {
-  return (typeof num === 'number' && !isNaN(num)) ? num.toFixed(2) : '0.00';
-}
-
-// --- Lemonania Reward helpers ---
-function getMyRewards() {
-  try {
-    return JSON.parse(localStorage.getItem('myRewards')) || [];
-  } catch {
-    return [];
-  }
-}
-function saveMyRewards(rewards) {
-  localStorage.setItem('myRewards', JSON.stringify(rewards));
-}
-function removeMyReward(index) {
-  const rewards = getMyRewards();
-  if (index >= 0 && index < rewards.length) {
-    rewards.splice(index, 1);
-    saveMyRewards(rewards);
-  }
-}
-
-// --- State for checkout ---
-let appliedRewardIndex = null;
-let appliedReward = null;
-let appliedCouponCode = null;
-let appliedDiscount = 0;
-let appliedMin = 0;
-
-// --- Render cart for checkout page ---
-function renderCartCheckout() {
-  const cart = loadCart();
-  const cartDiv = document.getElementById('cartItems');
-  if (!cartDiv) return;
-  cartDiv.innerHTML = '';
-  let total = 0;
-  if (Object.keys(cart).length === 0) {
-    cartDiv.innerText = "Your cart is empty.";
-    updateTotalDisplay(0);
-    return;
-  }
-  for (const item in cart) {
-    const entry = cart[item];
-    const quantity = entry.quantity ?? 0;
-    const price = entry.price ?? 0;
-    const subtotal = price * quantity;
-    total += subtotal;
-    const div = document.createElement('div');
-    div.className = 'item';
-    div.innerHTML = `<span>${item} — $${price.toFixed(2)} × ${quantity} = $${subtotal.toFixed(2)}</span>`;
-    cartDiv.appendChild(div);
-  }
-  // Pop pop x5 notice
-  if (localStorage.getItem('popPopActive') === 'true') {
-    const popDiv = document.createElement('div');
-    popDiv.style = "color:#b00;font-weight:bold;margin-top:1em;";
-    popDiv.innerText = "Your total has been multiplied by 5 due to your coupon code choice.";
-    cartDiv.appendChild(popDiv);
-  }
-  updateTotalDisplay(total);
-}
-
-// --- Render Lemonania rewards to select/use ---
-function renderRewardArea() {
-  const area = document.getElementById('rewardArea');
-  if (!area) return;
-  const rewards = getMyRewards();
-  if (!rewards.length) {
-    area.innerHTML = `<div class="reward-select"><b>No Lemonania rewards available.</b><br>
-      <a href="coupons.html">Redeem Lemon Points for Rewards</a></div>`;
-    return;
-  }
-  let subtotal = calcCartSubtotal();
-  let options = rewards.map((r, i) => {
-    let disabled = subtotal < r.min ? "disabled" : "";
-    let checked = appliedRewardIndex === i ? "checked" : "";
-    return `<label class="reward-option">
-      <input type="radio" name="reward" value="${i}" ${checked} ${disabled} onchange="selectReward(${i})">
-      ${r.label || r.code}: $${r.value} off (min $${r.min}) ${subtotal < r.min ? '<span style="color:#c00;">(need $' + r.min + ' in cart)</span>' : ''}
-    </label>`;
-  }).join('');
-  area.innerHTML = `<div class="reward-select"><b>Use a Lemonania Reward:</b><br>${options}
-    <button onclick="removeSelectedReward()" style="margin-top:0.8em;">Remove Reward</button></div>`;
-}
-
-// --- Handle reward select/deselect ---
-function selectReward(idx) {
-  const rewards = getMyRewards();
-  let subtotal = calcCartSubtotal();
-  if (rewards[idx] && subtotal >= rewards[idx].min) {
-    appliedRewardIndex = idx;
-    appliedReward = rewards[idx];
-    appliedCouponCode = null;
-    appliedDiscount = appliedReward.value;
-    appliedMin = appliedReward.min;
-  } else {
-    // Don't apply if not eligible
-    appliedRewardIndex = null;
-    appliedReward = null;
-    appliedDiscount = 0;
-    appliedMin = 0;
-  }
-  renderRewardArea();
-  updateTotalDisplay(calcCartSubtotal());
-  const discountInfoElem = document.getElementById('discountInfo');
-  if (discountInfoElem) discountInfoElem.innerHTML = '';
-  const couponElem = document.getElementById('coupon');
-  if (couponElem) couponElem.value = '';
-}
-function removeSelectedReward() {
-  appliedRewardIndex = null;
-  appliedReward = null;
-  appliedDiscount = 0;
-  appliedMin = 0;
-  renderRewardArea();
-  updateTotalDisplay(calcCartSubtotal());
-}
-
-// --- Coupon code logic (full integration with coupon-codes.js) ---
-function applyCoupon() {
-  const codeElem = document.getElementById('coupon');
-  const code = codeElem ? codeElem.value.trim() : '';
-  const cart = loadCart();
-  const discountInfoElem = document.getElementById('discountInfo');
-
-  // Special "pop pop" (cursed) code
-  if (code.toLowerCase() === "pop pop") {
-    localStorage.setItem('popPopActive', 'true');
-    localStorage.setItem('lemonPoints', 'no');
-    updateLemonPointsDisplay();
-    lemonPointsApplied = 0;
-    if (discountInfoElem)
-      discountInfoElem.innerHTML = '<span class="error">This coupon code Never has and never will exist</span>';
-    renderCartCheckout && renderCartCheckout();
-    updateTotalDisplay(calcCartSubtotal()); // subtotal will now include x5
-    return;
-  }
-
-  if (localStorage.getItem('popPopActive') === 'true') {
-    if (discountInfoElem)
-      discountInfoElem.innerHTML = '<span class="error">No more coupons. You used "pop pop".</span>';
-    renderCartCheckout && renderCartCheckout();
-    updateTotalDisplay(calcCartSubtotal());
-    return;
-  }
-
-  // Use coupon-codes.js for coupon definition
-  const coupon = typeof getCouponByCode === "function" ? getCouponByCode(code) : null;
-  if (!coupon) {
-    appliedCouponCode = null;
-    appliedDiscount = 0;
-    appliedMin = 0;
-    if (discountInfoElem)
-      discountInfoElem.innerHTML = `<span class="error">Invalid coupon code!</span>`;
-    return;
-  }
-  // Expiration
-  if (typeof isCouponExpired === "function" && isCouponExpired(coupon)) {
-    appliedCouponCode = null;
-    appliedDiscount = 0;
-    appliedMin = 0;
-    if (discountInfoElem)
-      discountInfoElem.innerHTML = `<span class="error">Sorry, this coupon has expired.</span>`;
-    return;
-  }
-  // Incompatible with Lemon Points reward
-  if (appliedRewardIndex !== null && typeof isCouponIncompatibleWithReward === "function" && isCouponIncompatibleWithReward(coupon, appliedReward)) {
-    if (discountInfoElem)
-      discountInfoElem.innerHTML = `<span class="error">Remove Lemonania reward to use this coupon code.</span>`;
-    return;
-  }
-  // Only apply to certain items if defined
-  let eligibleSubtotal = (typeof getCouponApplicableSubtotal === "function")
-    ? getCouponApplicableSubtotal(cart, coupon)
-    : calcCartSubtotal();
-  if (eligibleSubtotal < coupon.min) {
-    appliedCouponCode = null;
-    appliedDiscount = 0;
-    appliedMin = 0;
-    if (discountInfoElem)
-      discountInfoElem.innerHTML = `<span class="error">Not enough eligible items in cart for this coupon (need $${coupon.min}).</span>`;
-    return;
-  }
-  // Discount cannot exceed subtotal of applicable items
-  appliedCouponCode = code;
-  appliedDiscount = Math.min(coupon.discount, eligibleSubtotal);
-  appliedMin = coupon.min;
-  if (discountInfoElem)
-    discountInfoElem.innerHTML = `<span class="discount">${coupon.label} applied: -$${appliedDiscount}!</span>`;
-  updateTotalDisplay(calcCartSubtotal());
-}
-
-function cancelCoupon() {
-  if (localStorage.getItem('popPopActive') === 'true') {
-    const discountInfoElem = document.getElementById('discountInfo');
-    if (discountInfoElem)
-      discountInfoElem.innerHTML = '<span class="error">No coupon can help you now.</span>';
-    return;
-  }
-  appliedCouponCode = null;
-  appliedDiscount = 0;
-  appliedMin = 0;
-  const couponElem = document.getElementById('coupon');
-  if (couponElem) couponElem.value = '';
-  const discountInfoElem = document.getElementById('discountInfo');
-  if (discountInfoElem) discountInfoElem.innerHTML = '';
-  updateTotalDisplay(calcCartSubtotal());
-}
-
-// --- Update displayed total with reward/coupon ---
-function updateTotalDisplay(subtotal) {
-  // If pop pop, force price x5 and no discounts
-  if (localStorage.getItem('popPopActive') === 'true') {
-    subtotal = subtotal; // Already x5 in calcCartSubtotal
-    const totalElem = document.getElementById("totalDisplay");
-    if (totalElem)
-      totalElem.innerHTML = `Total: $${subtotal.toFixed(2)} <span class="error">(Pop Pop: ×5)</span>`;
-    return;
-  }
-
-  let discount = (typeof appliedDiscount === "number" ? appliedDiscount : 0);
-  let min = appliedMin || 0;
-  let finalTotal = subtotal;
-  let info = "";
-  if (discount > 0 && subtotal >= min) {
-    finalTotal = Math.max(0, subtotal - discount);
-    info += ` <span class="discount">( -$${discount.toFixed(2)} )</span>`;
-  }
-  const totalElem = document.getElementById("totalDisplay");
-  if (totalElem)
-    totalElem.innerHTML = `Total: $${finalTotal.toFixed(2)}${info}`;
-}
-
-// --- Render Cart (for cart page) ---
-function renderCart() {
-  const cart = loadCart();
-  const cartDiv = document.getElementById('cartItems');
-  if (!cartDiv) return;
-  cartDiv.innerHTML = '';
-  let total = 0;
-
-  if (Object.keys(cart).length === 0) {
-    cartDiv.innerText = "Your cart is empty.";
-    return;
-  }
-
-  for (const item in cart) {
-    const entry = cart[item];
-    const quantity = entry.quantity ?? 0;
-    const price = entry.price ?? 0;
-    const subtotal = price * quantity;
-    total += subtotal;
-
-    const div = document.createElement('div');
-    div.className = 'item';
-    div.innerHTML = `
-      <span>${item} — $${formatPrice(price)} × ${quantity} = $${formatPrice(subtotal)}</span>
-      <div class="item-buttons">
-        <button class="btn decrease-btn" onclick="decreaseItem('${item}')">−</button>
-        <button class="btn increase-btn" onclick="increaseItem('${item}')">+</button>
+    const u = getUser(user);
+    let pfp = u && u.pfp ? `<img src="${u.pfp}" class="pfp-img" alt="Profile Picture"><br>` : '';
+let emailStatus = u && u.verified
+  ? `<span class="success">Verified</span>`
+  : `<span class="error">Not Verified</span>
+     <span class="fake-link" onclick="showVerifyPrompt()">[Verify Now]</span>
+     <span class="fake-link" onclick="resendVerificationEmail()">[Resend]</span>`;
+    if (!document.getElementById('accountArea')) return;
+    document.getElementById('accountArea').innerHTML = `
+      <h2>Your Lemonania Account</h2>
+      <div style="text-align:center;">${pfp}
+        <form onsubmit="return false" style="margin-bottom:1em;">
+          <label for="pfpInput">Change Profile Picture:</label>
+          <input type="file" id="pfpInput" accept="image/*" style="margin:0.5em auto 1em auto;" onchange="changePFP(event)">
+        </form>
       </div>
+      <table class="account-info-table">
+        <tr><th>Username:</th><td>${user}</td></tr>
+        <tr><th>Email:</th><td>${u.email}</td></tr>
+        <tr><th>Email Status:</th><td id="emailStatus">${emailStatus}</td></tr>
+      </table>
+      <button onclick="logoutUser()">Log Out</button>
+      <div class="account-area">
+        <h3>Lemon Stats</h3>
+        <ul>
+          <li>Lemon Points: <b>${getUserPoints(user)}</b></li>
+          <li>Rewards: <b>${getUserRewards(user).length}</b></li>
+          <li>Cart Items: <b>${getUserCartCount(user)}</b></li>
+        </ul>
+      </div>
+      <div id="accountMsg"></div>
     `;
-    cartDiv.appendChild(div);
   }
-
-  const totalDiv = document.createElement('div');
-  totalDiv.style.marginTop = '15px';
-  totalDiv.innerHTML = `<strong>Total: $${formatPrice(total)}</strong>`;
-  cartDiv.appendChild(totalDiv);
 }
 
-// --- Checkout (from cart page) ---
-function checkout() {
-  playClick();
-  window.location.href = "checkout.html";
+function getUserPoints(username) {
+  return Number(localStorage.getItem("lemonPoints__" + username) || "0");
+}
+function getUserRewards(username) {
+  try {
+    return JSON.parse(localStorage.getItem("myRewards__" + username)) || [];
+  } catch { return []; }
+}
+function getUserCartCount(username) {
+  try {
+    const cart = JSON.parse(localStorage.getItem("cart__" + username)) || {};
+    let count = 0;
+    for (const k in cart) count += cart[k].quantity || 0;
+    return count;
+  } catch { return 0; }
 }
 
-// --- Lemon Points: Apply at checkout (for cart-only flow, not rewards/coupons) ---
-let lemonPointsApplied = 0;
-function applyLemonPoints() {
-  if (localStorage.getItem('popPopActive') === 'true') {
-    const infoElem = document.getElementById('pointsInfo');
-    if (infoElem)
-      infoElem.innerHTML = `<span class="error">No Lemon Points for you.</span>`;
-    updateLemonPointsDisplay();
-    return;
-  }
-  const subtotal = calcCartSubtotal();
-  const maxUsableChunks = Math.min(Math.floor(getLemonPoints() / 100), Math.floor(subtotal / 5));
-  if (maxUsableChunks === 0) {
-    alert("You don't have enough Lemon Points (need at least 100), or your subtotal is too low.");
-    return;
-  }
-  lemonPointsApplied = maxUsableChunks;
-  updateTotalDisplay(subtotal);
-  updateLemonPointsDisplay();
-  const infoElem = document.getElementById('pointsInfo');
-  if (infoElem)
-    infoElem.innerHTML =
-      `<span style="color:green;">Applied ${maxUsableChunks * 100} Lemon Points for $${(maxUsableChunks * 5).toFixed(2)} off.</span>`;
-}
-function cancelLemonPoints() {
-  lemonPointsApplied = 0;
-  updateTotalDisplay(calcCartSubtotal());
-  const infoElem = document.getElementById('pointsInfo');
-  if (infoElem) infoElem.innerHTML = '';
+// --- Account Actions ---
+window.registerUser = function() {
+  const username = document.getElementById('username').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const msg = document.getElementById('accountMsg');
+  if (!username || !email || !password) { msg.innerHTML = '<span class="error">Fill all fields.</span>'; return; }
+  if (!/^[a-zA-Z0-9_]+$/.test(username)) { msg.innerHTML = '<span class="error">Username letters, numbers, _ only.</span>'; return; }
+  if (username.length < 3 || username.length > 24) { msg.innerHTML = '<span class="error">Username 3-24 chars.</span>'; return; }
+  let users = getAllUsers();
+  if (users[username]) { msg.innerHTML = '<span class="error">Username already exists.</span>'; return; }
+  if (Object.values(users).some(u => u.email === email)) { msg.innerHTML = '<span class="error">Email already used.</span>'; return; }
+  let code = Math.floor(100000 + Math.random()*900000).toString();
+  users[username] = { email, password, verified:false, code, pfp:null };
+  saveAllUsers(users);
+  msg.innerHTML = 'Sending verification email...';
+  sendVerificationEmail(email, username, code, ok => {
+    if (ok) {
+      msg.innerHTML = '<span class="success">Verification email sent! Check your inbox.</span>';
+      setTimeout(() => showVerifyPrompt(username), 1200);
+    } else {
+      msg.innerHTML = '<span class="error">Failed to send verification email. Try again.</span>';
+    }
+  });
 }
 
-// --- Pay Now (checkout) -- now handles rewards/coupons/points
-function payNow() {
-  playClick && playClick();
-  if (localStorage.getItem('popPopActive') === 'true') {
-    // No Lemon Points, no discounts, x5 upcharge
-    // Just clear cart, NO points awarded
-    localStorage.removeItem('cart');
-    lemonPointsApplied = 0;
-    updateCartCount && updateCartCount();
-    updateLemonPointsDisplay && updateLemonPointsDisplay();
-    alert('Thank you for your order!\nYou get no Lemon Points.');
-    window.location.href = "index.html";
-    return;
-  }
-  const subtotal = calcCartSubtotal();
-  let discount = 0;
-  let usedReward = false;
+window.loginUser = function() {
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+  const msg = document.getElementById('accountMsg');
+  if (!username || !password) { msg.innerHTML = '<span class="error">Fill all fields.</span>'; return; }
+  const u = getUser(username);
+  if (!u || u.password !== password) { msg.innerHTML = '<span class="error">Incorrect username or password.</span>'; return; }
+  setCurrentUser(username);
+  migrateUserDataToThisUser(username);
+  renderAccountArea();
+}
 
-  // Reward/coupon logic for checkout.html
-  if (typeof appliedRewardIndex !== "undefined" && appliedRewardIndex !== null && typeof getMyRewards === "function") {
-    // Using reward
-    const rewards = getMyRewards();
-    const reward = rewards && rewards[appliedRewardIndex];
-    if (reward && subtotal >= (reward.min || 0)) {
-      discount = reward.value;
-      removeMyReward(appliedRewardIndex);
-      usedReward = true;
-      appliedRewardIndex = null;
-      appliedReward = null;
-    } else if (reward && subtotal < (reward.min || 0)) {
-      alert("You do not have enough in your cart for this reward.");
+window.logoutUser = function() {
+  setCurrentUser(null);
+  renderAccountArea();
+}
+
+// --- Verification ---
+window.showVerifyPrompt = function(username) {
+  if (!username) username = getCurrentUser();
+  if (!username) return;
+  const u = getUser(username);
+  if (!document.getElementById('accountArea')) return;
+  document.getElementById('accountArea').innerHTML = `
+    <h2>Email Verification</h2>
+    <p>A verification code was sent to: <b>${u.email}</b></p>
+    <form onsubmit="return false" class="account-form">
+      <label for="codeInput">Enter the code:</label>
+      <input type="text" id="codeInput" maxlength="6" required>
+      <button onclick="submitVerifyCode('${username}')">Verify</button>
+      <button onclick="renderAccountArea()">Cancel</button>
+    </form>
+    <div id="accountMsg"></div>
+  `;
+}
+window.submitVerifyCode = function(username) {
+  const code = document.getElementById('codeInput').value.trim();
+  const msg = document.getElementById('accountMsg');
+  let u = getUser(username);
+  if (!u) { msg.innerHTML = '<span class="error">User missing.</span>'; return; }
+  if (u.verified) { msg.innerHTML = '<span class="success">Already verified!</span>'; return; }
+  if (u.code === code) {
+    u.verified = true;
+    u.code = undefined;
+    setUser(username, u);
+    setCurrentUser(username);
+    // Send verified email!
+    sendAccountVerifiedEmail(u.email, username, function(success) {
+      // Optionally show feedback
+    });
+    msg.innerHTML = '<span class="success">Email verified! Logging in...</span>';
+    setTimeout(() => renderAccountArea(), 800);
+  } else {
+    msg.innerHTML = '<span class="error">Incorrect code. Check your email.</span>';
+  }
+}
+
+// --- PFP upload ---
+window.changePFP = function(ev) {
+  const file = ev.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith("image/")) { alert("Please select an image file."); return; }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const url = e.target.result;
+    const u = getCurrentUser();
+    if (!u) return;
+    let userObj = getUser(u);
+    userObj.pfp = url;
+    setUser(u, userObj);
+    renderAccountArea();
+  };
+  reader.readAsDataURL(file);
+};
+
+// --- Per-user data migration (for first login after system added) ---
+function migrateUserDataToThisUser(username) {
+  const keys = ["cart", "lemonPoints", "myRewards", "usedRewards"];
+  keys.forEach(base => {
+    let val = localStorage.getItem(base);
+    if (val && !localStorage.getItem(base + "__" + username)) {
+      localStorage.setItem(base + "__" + username, val);
+    }
+  });
+}
+
+// --- Patch shop.js functions for per-account data ---
+function patchGlobalFunctionsForAccounts() {
+  const orig_loadCart = window.loadCart;
+  window.loadCart = function() {
+    const u = getCurrentUser();
+    if (u) {
+      try {
+        return JSON.parse(localStorage.getItem("cart__" + u)) || {};
+      } catch { return {}; }
+    }
+    return orig_loadCart ? orig_loadCart() : {};
+  };
+  const orig_saveCart = window.saveCart;
+  window.saveCart = function(cart) {
+    const u = getCurrentUser();
+    if (u) {
+      localStorage.setItem("cart__" + u, JSON.stringify(cart));
       return;
     }
-  } else if (typeof appliedCouponCode !== "undefined" && appliedCouponCode) {
-    // Using coupon
-    discount = appliedDiscount || 0;
-    appliedCouponCode = null;
-    appliedDiscount = 0;
-    appliedMin = 0;
-  } else if (typeof lemonPointsApplied !== "undefined" && lemonPointsApplied > 0) {
-    // Lemon Points used in script.js context
-    discount = lemonPointsApplied * 5;
-    spendLemonPoints(lemonPointsApplied * 100);
-    lemonPointsApplied = 0;
-  }
-
-  // Calculate final total
-  let total = Math.max(0, subtotal - discount);
-
-  // Award Lemon Points: 1 per $1 spent (before discount)
-  const pointsEarned = Math.floor(subtotal);
-  addLemonPoints(pointsEarned);
-
-  // Reset states/coupon/reward
-  appliedCouponCode = null;
-  appliedDiscount = 0;
-  appliedMin = 0;
-
-  // Clear cart
-  localStorage.removeItem('cart');
-  updateCartCount && updateCartCount();
-  updateLemonPointsDisplay && updateLemonPointsDisplay();
-
-  alert(`Thank you for your order!\nYou earned ${pointsEarned} Lemon Points! 🍋`);
-  window.location.href = "index.html";
+    if (orig_saveCart) orig_saveCart(cart);
+  };
+  window.getLemonPoints = function() {
+    const u = getCurrentUser();
+    if (u) return Math.max(0, parseInt(localStorage.getItem("lemonPoints__" + u) || '0', 10));
+    return Math.max(0, parseInt(localStorage.getItem("lemonPoints") || '0', 10));
+  };
+  window.setLemonPoints = function(points) {
+    const u = getCurrentUser();
+    if (u) localStorage.setItem("lemonPoints__" + u, String(Math.max(0, Math.floor(points))));
+    else localStorage.setItem("lemonPoints", String(Math.max(0, Math.floor(points))));
+  };
+  window.getMyRewards = function() {
+    const u = getCurrentUser();
+    if (u) {
+      try { return JSON.parse(localStorage.getItem("myRewards__" + u)) || []; }
+      catch { return []; }
+    }
+    try { return JSON.parse(localStorage.getItem("myRewards")) || []; }
+    catch { return []; }
+  };
+  window.saveMyRewards = function(rewards) {
+    const u = getCurrentUser();
+    if (u) localStorage.setItem("myRewards__" + u, JSON.stringify(rewards));
+    else localStorage.setItem("myRewards", JSON.stringify(rewards));
+  };
+  window.getUsedRewards = function() {
+    const u = getCurrentUser();
+    if (u) {
+      try { return JSON.parse(localStorage.getItem("usedRewards__" + u)) || []; }
+      catch { return []; }
+    }
+    try { return JSON.parse(localStorage.getItem("usedRewards")) || []; }
+    catch { return []; }
+  };
+  window.saveUsedRewards = function(used) {
+    const u = getCurrentUser();
+    if (u) localStorage.setItem("usedRewards__" + u, JSON.stringify(used));
+    else localStorage.setItem("usedRewards", JSON.stringify(used));
+  };
 }
-
-// --- Coupon code stubs (not used with Lemon Points for now, but preserved for extensibility) ---
-function applyCouponStub() {
-  alert("Coupon codes are not yet supported. Try Lemon Points!");
-}
-function cancelCouponStub() {}
-
-// --- Click sound (optional, for fun) ---
-const clickPaths = [
-  "kenney_interface-sounds/Audio/click_001.ogg",
-  "kenney_interface-sounds/Audio/click_002.ogg",
-  "kenney_interface-sounds/Audio/click_003.ogg",
-  "kenney_interface-sounds/Audio/click_004.ogg",
-  "kenney_interface-sounds/Audio/click_005.ogg"
-];
-function playClick() {
-  const player = document.getElementById("clickPlayer");
-  if (!player) return;
-  const randomSound = clickPaths[Math.floor(Math.random() * clickPaths.length)];
-  player.src = randomSound;
-  player.currentTime = 0;
-  player.play();
-}
-
-// --- Used Rewards Management (for coupons.html and other pages) ---
-function getUsedRewards() {
-  try {
-    return JSON.parse(localStorage.getItem('usedRewards')) || [];
-  } catch {
-    return [];
-  }
-}
-function saveUsedRewards(used) {
-  localStorage.setItem('usedRewards', JSON.stringify(used));
-}
-function addUsedReward(reward) {
-  const used = getUsedRewards();
-  used.push({
-    ...reward,
-    usedAt: new Date().toISOString()
+window.resendVerificationEmail = function() {
+  const username = getCurrentUser();
+  if (!username) return;
+  const user = getUser(username);
+  if (!user) return;
+  // Generate a new code and save it
+  let code = Math.floor(100000 + Math.random()*900000).toString();
+  user.code = code;
+  setUser(username, user);
+  // Send the email
+  const msgDiv = document.getElementById('accountMsg');
+  msgDiv.innerHTML = 'Resending verification email...';
+  sendVerificationEmail(user.email, username, code, function(ok) {
+    if (ok) {
+      msgDiv.innerHTML = '<span class="success">Verification email resent! Check your inbox.</span>';
+    } else {
+      msgDiv.innerHTML = '<span class="error">Failed to send verification email. Try again.</span>';
+    }
   });
-  saveUsedRewards(used);
-}
-window.addUsedReward = addUsedReward;
+};
 
-// --- On page load helpers for Lemon Points in header ---
+// --- On DOMContentLoaded, patch functions and render account area if present ---
 document.addEventListener("DOMContentLoaded", function() {
-  updateCartCount();
-  updateLemonPointsDisplay();
-  // If popPopActive and lemonPoints is not 'no', force set
-  if (localStorage.getItem('popPopActive') === 'true') {
-    localStorage.setItem('lemonPoints', 'no');
-    updateLemonPointsDisplay();
-  }
+  patchGlobalFunctionsForAccounts();
+  if (typeof renderAccountArea === "function" && document.getElementById('accountArea')) renderAccountArea();
 });
+
+// === Lemonania Account System Additions End ===
+
+
+// --- rest of your untouched Lemonania code below ---
+// (Paste your existing script.js here.)
+// --- (from previous script.js, see previous message for full Lemonania cart/points/shop code) ---
+
+// (PASTE the content of your previous script.js here AFTER the account system additions above.)
+// For brevity, and since your script.js is already in the repo, you can copy-paste all content from your main branch's script.js
+// right after the account system code above. Remove the duplicate account system code if present at the bottom.
+
+
+// === Begin Untouched Lemonania Core Shop/Cart/Points/Coupon Code ===
+// (Copy-paste from your current 'script.js' starting from the line:
+// // Robust Lemonania shop.js: Cart, Lemon Points, Rewards, Coupons and click sounds
+// ... all the way to the end of the file.)
+// (See previous answers or your repo for the latest copy.)
+// === End Untouched Lemonania Core ===

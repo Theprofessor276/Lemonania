@@ -13,13 +13,7 @@
   <body>
     <div id="boc">
   <div id="lemonania-header"></div>
-  <script>
-    fetch('header.html')
-      .then(r => r.text())
-      .then(html => {
-        document.getElementById('lemonania-header').innerHTML = html;
-      });
-  </script>
+
       <main>
         <p>Text</p>
       </main>
@@ -38,6 +32,11 @@
     document.addEventListener("DOMContentLoaded", function() {
       updateLemonPointsDisplay();
     });
+    fetch('header.html')
+      .then(r => r.text())
+      .then(html => {
+        document.getElementById('lemonania-header').innerHTML = html;
+      });
   </script>
   </body>
 </html>

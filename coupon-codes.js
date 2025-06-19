@@ -35,13 +35,13 @@ const COUPON_CODES = {
     expires: Date.UTC(2027, 0, 1), // January 1, 2027
     items: ["Lemon Lemonaid"] // Only applies to these items
   },
-    "test": {
-    discount: 10,
-    min: 15,
+    "TEST": {
+    discount: 100,
+    min: 1,
     incompatibleWith: [],
-    label: "$10 off drinks (DRINKS10, min $15, on beverages only)",
-    expires: Date.UTC(2024, 0, 1), // January 1, 2024
-    items: ["undifined"] // Only applies to these items
+        label: "$10 off drinks (DRINKS10, min $15, on beverages only)",
+    expires: Date.UTC(2023, 0, 1), // January 1, 2024
+    items: undefined // Only applies to these items
   }
   // Add more coupons here as needed, using the same structure
 };

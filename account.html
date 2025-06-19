@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Lemonania Account</title>
+  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lemon&family=Lobster&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="Lemon.png">
+  <style>
+    .account-container {
+      max-width: 500px;
+      margin: 2em auto;
+      background: #FFFACD;
+      border-radius: 1em;
+      border: 2px solid #FFD700;
+      padding: 2em;
+      box-shadow: 0 0.1em 1em #ffd70030;
+    }
+    .account-form label { font-weight: bold; }
+    .account-form input, .account-form button {
+      padding: 0.6em 1em;
+      margin-bottom: 1em;
+      border-radius: 0.5em;
+      border: 1px solid #ffd54f;
+      font-family: 'Lemon', 'Lobster', Arial, sans-serif;
+      font-size:1em;
+      background: #fff;
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .account-form button { background: #FFD700; color: #282828; font-weight: bold; margin-top: 0.5em;}
+    .account-form button:hover { background: #FFDEAD; }
+    .account-area { margin-top: 2em; }
+    .pfp-img {
+      width: 96px; height: 96px; border-radius: 50%;
+      border: 2px solid #FFD700; object-fit: cover; background: #fffbe8;
+      margin-bottom: 0.6em;
+    }
+    .fake-link { color: #32CD32; text-decoration: underline; cursor: pointer; }
+    .account-info-table { width: 100%; margin:1em 0;}
+    .account-info-table th, .account-info-table td {
+      text-align:left; padding:0.3em 0.7em;
+    }
+    .error { color: #c00; font-weight:bold;}
+    .success { color: #32CD32; font-weight:bold;}
+  </style>
+</head>
+<body>
+  <div id="boc">
+    <div id="lemonania-header"></div>
+    <main>
+      <div class="account-container" id="accountArea">
+        <!-- Dynamic content inserted here -->
+      </div>
+    </main>
+    <footer>Created By Alan Zachary O'Keefe &copy; 2027</footer>
+  </div>
+  <script src="script.js"></script>
+<script>
+  fetch('header.html')
+    .then(r => r.text())
+    .then(html => {
+      document.getElementById('lemonania-header').innerHTML = html;
+      if (typeof updateLemonPointsDisplay === "function") updateLemonPointsDisplay();
+    });
+</script>
+</body>
+</html>
