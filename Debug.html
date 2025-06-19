@@ -1,233 +1,272 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Lemonania Test Panel</title>
-  <!-- Use similar styling to template.html; update paths if you have a global CSS -->
-  <link rel="stylesheet" href="style.css">
-  <style>
-    /* Extra styles for password form & test panel */
-    body {
-      background: #ffe066;
-      font-family: 'Segoe UI', Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      min-height: 100vh;
-    }
-    .container {
-      max-width: 600px;
-      margin: 40px auto;
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.07);
-      padding: 32px 24px;
-    }
-    #password-section {
-      text-align: center;
-      margin-top: 80px;
-    }
-    #password-section input[type=password] {
-      padding: 8px 12px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      font-size: 1rem;
-      margin-right: 8px;
-    }
-    #password-section button {
-      padding: 8px 16px;
-      border-radius: 6px;
-      background: #ffd700;
-      border: none;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    #password-section .error {
-      color: #c00;
-      margin-top: 1em;
-    }
-    #test-panel {
-      display: none;
-    }
-    h2 {
-      color: #e09f3e;
-      margin-bottom: 0.5em;
-    }
-    .item-list {
-      margin-bottom: 24px;
-    }
-    .item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #f9f9f0;
-      margin-bottom: 6px;
-      padding: 6px 10px;
-      border-radius: 6px;
-    }
-    .remove-btn {
-      background: #ff4040;
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      padding: 2px 10px;
-      cursor: pointer;
-      font-size: 0.9em;
-    }
-    .remove-btn:hover {
-      background: #b80000;
-    }
-    .test-actions button {
-      margin: 6px 8px 6px 0;
-      padding: 8px 14px;
-      border-radius: 6px;
-      border: none;
-      background: #00bfae;
-      color: #fff;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .test-actions button:hover {
-      background: #008c7a;
-    }
-    .reset-btn {
-      background: #ffd700;
-      color: #222;
-    }
-    .reset-btn:hover {
-      background: #c8a300;
-    }
-    /* Responsive */
-    @media (max-width: 700px) {
-      .container { padding: 18px 6px; }
-    }
-  </style>
-</head>
-<body>
-  <!-- Password Protection Section -->
-  <div id="password-section" class="container">
-    <h2>Protected Test Panel</h2>
-    <input type="password" id="password-input" placeholder="Enter password">
-    <button onclick="checkPassword()">Unlock</button>
-    <div class="error" id="password-error"></div>
-  </div>
-  <!-- Main Test Panel -->
-  <div id="test-panel" class="container">
-    <!-- Mimic template.html header/nav here if needed -->
-    <h1>Lemonania Test Panel</h1>
-    <p>Add, remove, and test custom shop items. You can also activate/deactivate effects for development.</p>
-    
-    <!-- Add custom item -->
-    <form id="add-item-form" onsubmit="return addItem(event)">
-      <input type="text" id="item-name" placeholder="Item name" required>
-      <input type="number" id="item-price" placeholder="Price" min="1" required>
-      <button type="submit">Add Item</button>
-    </form>
-    
-    <!-- Item list -->
-    <div class="item-list" id="item-list"></div>
-    
-    <!-- Test Actions -->
-    <div class="test-actions">
-      <button onclick="activateSale()">Activate Sale Effect</button>
-      <button onclick="activateRandom()">Add Random Item</button>
-      <button class="reset-btn" onclick="resetPanel()">Reset All</button>
-      <button class="reset-btn" onclick="removeEffects()">Remove All Effects</button>
+<html>
+  <head>
+    <link rel="stylesheet" href="style.css">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Lemonania Debug Tools</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lemon&family=Lobster&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="Lemon.png">
+    <style>
+      .debug-btn {
+        margin: 1em 0.5em 1em 0;
+        padding: 0.7em 1.5em;
+        font-size: 1.12em;
+        font-family: 'Lemon', 'Lobster', Arial, sans-serif;
+        background: #FFD700;
+        color: #282828;
+        border: 2px solid #ffd54f;
+        border-radius: 0.5em;
+        cursor: pointer;
+        font-weight: bold;
+        transition: background 0.2s;
+      }
+      .debug-btn:hover { background: #FFFACD; }
+      .debug-status {
+        margin: 1.5em 0 0 0;
+        font-size: 1.1em;
+        color: #228c22;
+        font-family: 'Lemon', 'Lobster', Arial, sans-serif;
+      }
+      .debug-section { margin-bottom: 2.5em; }
+      .debug-input-row { margin: 0.5em 0; }
+      .debug-table { margin-top:1em; border-collapse:collapse; }
+      .debug-table th, .debug-table td {
+        border:1px solid #FFD700; padding:0.4em 0.8em; text-align:left;
+      }
+      .debug-table th { background: #FFFAE3; }
+      .debug-table td { background: #FFF8DC; }
+      .debug-label {
+        font-size:1em;
+        font-weight:bold;
+        margin-right:0.5em;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="boc">
+      <div id="lemonania-header"></div>
+      <main>
+        <h1>Lemonania Debug Tools</h1>
+
+        <div class="debug-section">
+          <h2>Pop Pop Curse</h2>
+          <button class="debug-btn" onclick="removePopPop()">Remove Pop Pop Curse</button>
+          <button class="debug-btn" onclick="activatePopPop()">Activate Pop Pop Curse</button>
+          <div id="debugStatus-pop" class="debug-status"></div>
+        </div>
+
+        <div class="debug-section">
+          <h2>Lemon Points</h2>
+          <div class="debug-input-row">
+            <span class="debug-label">Set Lemon Points:</span>
+            <input id="setLemonPointsInput" type="number" style="width:80px;" min="0">
+            <button class="debug-btn" onclick="setLemonPointsDebug()">Set</button>
+            <button class="debug-btn" onclick="addLemonPointsDebug(50)">+50</button>
+            <button class="debug-btn" onclick="addLemonPointsDebug(500)">+500</button>
+            <button class="debug-btn" onclick="addLemonPointsDebug(-50)">-50</button>
+          </div>
+          <div class="debug-input-row">
+            <button class="debug-btn" onclick="zeroLemonPoints()">Zero Lemon Points</button>
+          </div>
+          <div id="debugStatus-lemon" class="debug-status"></div>
+        </div>
+
+        <div class="debug-section">
+          <h2>Cart</h2>
+          <button class="debug-btn" onclick="fillCart()">Fill Cart With Items</button>
+          <button class="debug-btn" onclick="clearCartDebug()">Clear Cart</button>
+          <button class="debug-btn" onclick="showCartDebug()">Show Cart Data</button>
+          <div id="debug-cart-table"></div>
+        </div>
+
+        <div class="debug-section">
+          <h2>Rewards</h2>
+          <button class="debug-btn" onclick="giveTestRewards()">Give Test Rewards</button>
+          <button class="debug-btn" onclick="clearRewards()">Clear All Rewards</button>
+          <button class="debug-btn" onclick="showRewards()">Show Rewards</button>
+          <div id="debug-rewards-table"></div>
+        </div>
+
+        <div class="debug-section">
+          <h2>Coupons</h2>
+          <button class="debug-btn" onclick="setTestCoupon('SUMMER5')">Apply SUMMER5</button>
+          <button class="debug-btn" onclick="setTestCoupon('BIGLEMON')">Apply BIGLEMON</button>
+          <button class="debug-btn" onclick="setTestCoupon('pop pop')">Apply Pop Pop</button>
+          <button class="debug-btn" onclick="clearCoupon()">Clear Coupon</button>
+          <div id="debugStatus-coupon" class="debug-status"></div>
+        </div>
+
+        <div class="debug-section">
+          <h2>Used Rewards</h2>
+          <button class="debug-btn" onclick="clearUsedRewards()">Clear Used Rewards</button>
+          <button class="debug-btn" onclick="showUsedRewards()">Show Used Rewards</button>
+          <div id="debug-used-rewards-table"></div>
+        </div>
+
+        <div class="debug-section">
+          <h2>Raw localStorage</h2>
+          <button class="debug-btn" onclick="showAllLocalStorage()">Show All localStorage</button>
+          <div id="debug-all-storage"></div>
+        </div>
+
+      </main>
+      <footer>Created By Alan Zachary O'Keefe &copy; 2027</footer>
     </div>
-    
-    <!-- Placeholder for test status -->
-    <div id="test-status"></div>
-    <!-- End of template mimic -->
-  </div>
-  
-  <script>
-    // Password protection
-    function checkPassword() {
-      const input = document.getElementById('password-input').value;
-      if (input === "lemon") {
-        document.getElementById('password-section').style.display = 'none';
-        document.getElementById('test-panel').style.display = 'block';
-      } else {
-        document.getElementById('password-error').textContent = "Incorrect password!";
+    <script src="script.js"></script>
+    <script>
+      fetch('header.html')
+        .then(r => r.text())
+        .then(html => {
+          document.getElementById('lemonania-header').innerHTML = html;
+          if (typeof updateLemonPointsDisplay === "function") updateLemonPointsDisplay();
+        });
+
+      // Pop Pop
+      function removePopPop() {
+        localStorage.removeItem('popPopActive');
+        if(localStorage.getItem('lemonPoints') === 'no') {
+          localStorage.setItem('lemonPoints', '0');
+        }
+        if (typeof updateLemonPointsDisplay === "function") updateLemonPointsDisplay();
+        document.getElementById('debugStatus-pop').innerText = 'Pop Pop curse removed! Lemon Points restored to 0.';
       }
-    }
-    document.getElementById('password-input').addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') checkPassword();
-    });
-
-    // Test Panel logic
-    let items = [];
-    let saleActive = false;
-
-    function renderItems() {
-      const list = document.getElementById('item-list');
-      list.innerHTML = '';
-      if (items.length === 0) {
-        list.innerHTML = "<em>No items yet.</em>";
-        return;
+      function activatePopPop() {
+        localStorage.setItem('popPopActive', 'true');
+        localStorage.setItem('lemonPoints', 'no');
+        if (typeof updateLemonPointsDisplay === "function") updateLemonPointsDisplay();
+        document.getElementById('debugStatus-pop').innerText = 'Pop Pop curse ACTIVATED! Lemon Points set to "no".';
       }
-      items.forEach((item, idx) => {
-        const div = document.createElement('div');
-        div.className = 'item';
-        div.innerHTML = `<span>${item.name} - $${item.price}${item.sale ? ' <strong style="color:#e09f3e">(SALE!)</strong>' : ''}</span>
-          <button class="remove-btn" onclick="removeItem(${idx})">Remove</button>`;
-        list.appendChild(div);
-      });
-    }
 
-    function addItem(event) {
-      event.preventDefault();
-      const name = document.getElementById('item-name').value.trim();
-      const price = parseFloat(document.getElementById('item-price').value);
-      if (!name || isNaN(price) || price < 1) return false;
-      items.push({ name, price, sale: saleActive });
-      renderItems();
-      document.getElementById('add-item-form').reset();
-      return false;
-    }
+      // Lemon Points
+      function setLemonPointsDebug() {
+        let v = parseInt(document.getElementById('setLemonPointsInput').value, 10);
+        if (isNaN(v) || v < 0) v = 0;
+        localStorage.setItem('lemonPoints', String(v));
+        if (typeof updateLemonPointsDisplay === "function") updateLemonPointsDisplay();
+        document.getElementById('debugStatus-lemon').innerText = 'Lemon Points set to ' + v;
+      }
+      function addLemonPointsDebug(amt) {
+        let pts = parseInt(localStorage.getItem('lemonPoints') || '0',10);
+        pts += amt;
+        if (pts < 0) pts = 0;
+        localStorage.setItem('lemonPoints', String(pts));
+        if (typeof updateLemonPointsDisplay === "function") updateLemonPointsDisplay();
+        document.getElementById('debugStatus-lemon').innerText = 'Lemon Points changed by ' + amt + ', now ' + pts;
+      }
+      function zeroLemonPoints() {
+        localStorage.setItem('lemonPoints', '0');
+        if (typeof updateLemonPointsDisplay === "function") updateLemonPointsDisplay();
+        document.getElementById('debugStatus-lemon').innerText = 'Lemon Points set to 0.';
+      }
 
-    function removeItem(idx) {
-      items.splice(idx, 1);
-      renderItems();
-    }
+      // Cart
+      function fillCart() {
+        const testCart = {
+          "Giant Lemon": { quantity: 3, price: 14.99 },
+          "Lemon Lemonaid": { quantity: 2, price: 3.99 },
+          "Quantum Lemon": { quantity: 1, price: 14.99 },
+          "Invisible Lemon": { quantity: 4, price: 6.99 }
+        };
+        localStorage.setItem('cart', JSON.stringify(testCart));
+        if (typeof updateCartCount === "function") updateCartCount();
+        document.getElementById('debug-cart-table').innerHTML = '<b>Cart filled with test data.</b>';
+      }
+      function clearCartDebug() {
+        localStorage.removeItem('cart');
+        if (typeof updateCartCount === "function") updateCartCount();
+        document.getElementById('debug-cart-table').innerHTML = '<b>Cart cleared.</b>';
+      }
+      function showCartDebug() {
+        let cart;
+        try { cart = JSON.parse(localStorage.getItem('cart')) || {}; } catch { cart = {}; }
+        if (!cart || Object.keys(cart).length === 0) {
+          document.getElementById('debug-cart-table').innerHTML = 'Cart is empty.';
+          return;
+        }
+        let html = '<table class="debug-table"><tr><th>Item</th><th>Qty</th><th>Price</th></tr>';
+        for (const k in cart) {
+          html += `<tr><td>${k}</td><td>${cart[k].quantity}</td><td>$${cart[k].price.toFixed(2)}</td></tr>`;
+        }
+        html += '</table>';
+        document.getElementById('debug-cart-table').innerHTML = html;
+      }
 
-    function activateSale() {
-      saleActive = true;
-      items.forEach(item => item.sale = true);
-      renderItems();
-      setStatus("Sale effect activated! All items marked as on sale.");
-    }
+      // Rewards
+      function giveTestRewards() {
+        const rewards = [
+          { code: 'SOUR5', value: 5, min: 20, label: '$5 Off Reward' },
+          { code: 'ZEST10', value: 10, min: 40, label: '$10 Off Reward' },
+          { code: 'LEMONANIA15', value: 15, min: 60, label: '$15 Off Reward' }
+        ];
+        localStorage.setItem('myRewards', JSON.stringify(rewards));
+        document.getElementById('debug-rewards-table').innerHTML = '<b>Test rewards granted.</b>';
+      }
+      function clearRewards() {
+        localStorage.removeItem('myRewards');
+        document.getElementById('debug-rewards-table').innerHTML = '<b>All rewards cleared.</b>';
+      }
+      function showRewards() {
+        let rewards;
+        try { rewards = JSON.parse(localStorage.getItem('myRewards')) || []; } catch { rewards = []; }
+        if (!rewards.length) {
+          document.getElementById('debug-rewards-table').innerHTML = 'No rewards found.';
+          return;
+        }
+        let html = '<table class="debug-table"><tr><th>Code</th><th>Value</th><th>Min</th><th>Label</th></tr>';
+        for (const r of rewards) {
+          html += `<tr><td>${r.code}</td><td>$${r.value}</td><td>$${r.min}</td><td>${r.label || ''}</td></tr>`;
+        }
+        html += '</table>';
+        document.getElementById('debug-rewards-table').innerHTML = html;
+      }
 
-    function activateRandom() {
-      const randomNames = ["Sour Gummy", "Lemon Cake", "Mystery Juice", "Golden Ticket"];
-      const name = randomNames[Math.floor(Math.random() * randomNames.length)];
-      const price = Math.floor(Math.random() * 100) + 1;
-      items.push({ name, price, sale: saleActive });
-      renderItems();
-      setStatus(`Random item "${name}" added!`);
-    }
+      // Coupons
+      function setTestCoupon(code) {
+        const codeElem = document.getElementById('coupon');
+        if (codeElem) codeElem.value = code;
+        if (typeof applyCoupon === "function") applyCoupon();
+        document.getElementById('debugStatus-coupon').innerText = 'Test coupon "' + code + '" applied (if supported by page).';
+      }
+      function clearCoupon() {
+        if (typeof cancelCoupon === "function") cancelCoupon();
+        document.getElementById('debugStatus-coupon').innerText = 'Coupon cleared (if supported by page).';
+      }
 
-    function resetPanel() {
-      items = [];
-      saleActive = false;
-      renderItems();
-      setStatus("All items and effects reset.");
-    }
+      // Used Rewards
+      function clearUsedRewards() {
+        localStorage.removeItem('usedRewards');
+        document.getElementById('debug-used-rewards-table').innerHTML = '<b>All used rewards cleared.</b>';
+      }
+      function showUsedRewards() {
+        let used;
+        try { used = JSON.parse(localStorage.getItem('usedRewards')) || []; } catch { used = []; }
+        if (!used.length) {
+          document.getElementById('debug-used-rewards-table').innerHTML = 'No used rewards found.';
+          return;
+        }
+        let html = '<table class="debug-table"><tr><th>Code</th><th>Value</th><th>Min</th><th>Label</th><th>Used At</th></tr>';
+        for (const r of used) {
+          html += `<tr><td>${r.code}</td><td>$${r.value}</td><td>$${r.min}</td><td>${r.label || ''}</td><td>${r.usedAt || ''}</td></tr>`;
+        }
+        html += '</table>';
+        document.getElementById('debug-used-rewards-table').innerHTML = html;
+      }
 
-    function removeEffects() {
-      saleActive = false;
-      items.forEach(item => item.sale = false);
-      renderItems();
-      setStatus("All effects removed.");
-    }
-
-    function setStatus(msg) {
-      document.getElementById('test-status').textContent = msg;
-      setTimeout(() => { document.getElementById('test-status').textContent = ""; }, 2000);
-    }
-
-    // Initial render
-    renderItems();
-  </script>
-</body>
+      // Show all localStorage
+      function showAllLocalStorage() {
+        let html = '<table class="debug-table"><tr><th>Key</th><th>Value</th></tr>';
+        for (let i = 0; i < localStorage.length; ++i) {
+          const k = localStorage.key(i);
+          let v = localStorage.getItem(k);
+          if (v && v.length > 200) v = v.substr(0, 200) + '...';
+          html += `<tr><td>${k}</td><td>${v}</td></tr>`;
+        }
+        html += '</table>';
+        document.getElementById('debug-all-storage').innerHTML = html;
+      }
+    </script>
+  </body>
 </html>

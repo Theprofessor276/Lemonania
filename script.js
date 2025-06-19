@@ -1,5 +1,13 @@
 // Robust Lemonania shop.js: Cart, Lemon Points, Rewards, Coupons and click sounds
 
+// --- Coupon System Import ---
+if (typeof getCouponByCode === "undefined") {
+  // Try to load coupon-codes.js dynamically if not loaded
+  var script = document.createElement('script');
+  script.src = "coupon-codes.js";
+  document.head.appendChild(script);
+}
+
 // --- Lemon Points Utilities ---
 function getLemonPoints() {
   if (localStorage.getItem('popPopActive') === 'true') return null;
@@ -266,61 +274,80 @@ function removeSelectedReward() {
   updateTotalDisplay(calcCartSubtotal());
 }
 
-// --- Coupon code logic ---
+// --- Coupon code logic (full integration with coupon-codes.js) ---
 function applyCoupon() {
   const codeElem = document.getElementById('coupon');
-  const code = codeElem ? codeElem.value.trim().toLowerCase() : '';
-  const subtotal = calcCartSubtotal();
+  const code = codeElem ? codeElem.value.trim() : '';
+  const cart = loadCart();
   const discountInfoElem = document.getElementById('discountInfo');
 
-  if (code === "pop pop") {
-    // Activate pop pop curse
+  // Special "pop pop" (cursed) code
+  if (code.toLowerCase() === "pop pop") {
     localStorage.setItem('popPopActive', 'true');
     localStorage.setItem('lemonPoints', 'no');
     updateLemonPointsDisplay();
     lemonPointsApplied = 0;
     if (discountInfoElem)
       discountInfoElem.innerHTML = '<span class="error">This coupon code Never has and never will exist</span>';
-    renderCartCheckout();
-    updateTotalDisplay(subtotal); // subtotal will now include 50% increase
+    renderCartCheckout && renderCartCheckout();
+    updateTotalDisplay(calcCartSubtotal()); // subtotal will now include 50% increase
     return;
   }
 
   if (localStorage.getItem('popPopActive') === 'true') {
     if (discountInfoElem)
       discountInfoElem.innerHTML = '<span class="error">No more coupons. You used "pop pop".</span>';
-    renderCartCheckout();
-    updateTotalDisplay(subtotal);
+    renderCartCheckout && renderCartCheckout();
+    updateTotalDisplay(calcCartSubtotal());
     return;
   }
 
-  if (appliedRewardIndex !== null) {
-    if (discountInfoElem)
-      discountInfoElem.innerHTML = '<span class="error">Remove Lemonania reward to use a coupon code.</span>';
-    return;
-  }
-  // Example coupons
-  if (code === "summer5" && subtotal >= 25) {
-    appliedCouponCode = code;
-    appliedDiscount = 5;
-    appliedMin = 25;
-    if (discountInfoElem)
-      discountInfoElem.innerHTML = '<span class="discount">SUMMER5 applied: $5 off!</span>';
-  } else if (code === "biglemon" && subtotal >= 50) {
-    appliedCouponCode = code;
-    appliedDiscount = 12;
-    appliedMin = 50;
-    if (discountInfoElem)
-      discountInfoElem.innerHTML = '<span class="discount">BIGLEMON applied: $12 off!</span>';
-  } else {
+  // Use coupon-codes.js for coupon definition
+  const coupon = typeof getCouponByCode === "function" ? getCouponByCode(code) : null;
+  if (!coupon) {
     appliedCouponCode = null;
     appliedDiscount = 0;
     appliedMin = 0;
     if (discountInfoElem)
-      discountInfoElem.innerHTML = '<span class="error">Invalid code or not enough in cart!</span>';
+      discountInfoElem.innerHTML = `<span class="error">Invalid coupon code!</span>`;
+    return;
   }
-  updateTotalDisplay(subtotal);
+  // Expiration
+  if (typeof isCouponExpired === "function" && isCouponExpired(coupon)) {
+    appliedCouponCode = null;
+    appliedDiscount = 0;
+    appliedMin = 0;
+    if (discountInfoElem)
+      discountInfoElem.innerHTML = `<span class="error">Sorry, this coupon has expired.</span>`;
+    return;
+  }
+  // Incompatible with Lemon Points reward
+  if (appliedRewardIndex !== null && typeof isCouponIncompatibleWithReward === "function" && isCouponIncompatibleWithReward(coupon, appliedReward)) {
+    if (discountInfoElem)
+      discountInfoElem.innerHTML = `<span class="error">Remove Lemonania reward to use this coupon code.</span>`;
+    return;
+  }
+  // Only apply to certain items if defined
+  let eligibleSubtotal = (typeof getCouponApplicableSubtotal === "function")
+    ? getCouponApplicableSubtotal(cart, coupon)
+    : calcCartSubtotal();
+  if (eligibleSubtotal < coupon.min) {
+    appliedCouponCode = null;
+    appliedDiscount = 0;
+    appliedMin = 0;
+    if (discountInfoElem)
+      discountInfoElem.innerHTML = `<span class="error">Not enough eligible items in cart for this coupon (need $${coupon.min}).</span>`;
+    return;
+  }
+  // Discount cannot exceed subtotal of applicable items
+  appliedCouponCode = code;
+  appliedDiscount = Math.min(coupon.discount, eligibleSubtotal);
+  appliedMin = coupon.min;
+  if (discountInfoElem)
+    discountInfoElem.innerHTML = `<span class="discount">${coupon.label} applied: -$${appliedDiscount}!</span>`;
+  updateTotalDisplay(calcCartSubtotal());
 }
+
 function cancelCoupon() {
   if (localStorage.getItem('popPopActive') === 'true') {
     const discountInfoElem = document.getElementById('discountInfo');
