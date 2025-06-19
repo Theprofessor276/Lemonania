@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Lemonania Test Panel</title>
+  <!-- Use similar styling to template.html; update paths if you have a global CSS -->
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Extra styles for password form & test panel */
+    body {
+      background: #ffe066;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+      padding: 32px 24px;
+    }
+    #password-section {
+      text-align: center;
+      margin-top: 80px;
+    }
+    #password-section input[type=password] {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+      margin-right: 8px;
+    }
+    #password-section button {
+      padding: 8px 16px;
+      border-radius: 6px;
+      background: #ffd700;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    #password-section .error {
+      color: #c00;
+      margin-top: 1em;
+    }
+    #test-panel {
+      display: none;
+    }
+    h2 {
+      color: #e09f3e;
+      margin-bottom: 0.5em;
+    }
+    .item-list {
+      margin-bottom: 24px;
+    }
+    .item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f9f9f0;
+      margin-bottom: 6px;
+      padding: 6px 10px;
+      border-radius: 6px;
+    }
+    .remove-btn {
+      background: #ff4040;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 2px 10px;
+      cursor: pointer;
+      font-size: 0.9em;
+    }
+    .remove-btn:hover {
+      background: #b80000;
+    }
+    .test-actions button {
+      margin: 6px 8px 6px 0;
+      padding: 8px 14px;
+      border-radius: 6px;
+      border: none;
+      background: #00bfae;
+      color: #fff;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .test-actions button:hover {
+      background: #008c7a;
+    }
+    .reset-btn {
+      background: #ffd700;
+      color: #222;
+    }
+    .reset-btn:hover {
+      background: #c8a300;
+    }
+    /* Responsive */
+    @media (max-width: 700px) {
+      .container { padding: 18px 6px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Password Protection Section -->
+  <div id="password-section" class="container">
+    <h2>Protected Test Panel</h2>
+    <input type="password" id="password-input" placeholder="Enter password">
+    <button onclick="checkPassword()">Unlock</button>
+    <div class="error" id="password-error"></div>
+  </div>
+  <!-- Main Test Panel -->
+  <div id="test-panel" class="container">
+    <!-- Mimic template.html header/nav here if needed -->
+    <h1>Lemonania Test Panel</h1>
+    <p>Add, remove, and test custom shop items. You can also activate/deactivate effects for development.</p>
+    
+    <!-- Add custom item -->
+    <form id="add-item-form" onsubmit="return addItem(event)">
+      <input type="text" id="item-name" placeholder="Item name" required>
+      <input type="number" id="item-price" placeholder="Price" min="1" required>
+      <button type="submit">Add Item</button>
+    </form>
+    
+    <!-- Item list -->
+    <div class="item-list" id="item-list"></div>
+    
+    <!-- Test Actions -->
+    <div class="test-actions">
+      <button onclick="activateSale()">Activate Sale Effect</button>
+      <button onclick="activateRandom()">Add Random Item</button>
+      <button class="reset-btn" onclick="resetPanel()">Reset All</button>
+      <button class="reset-btn" onclick="removeEffects()">Remove All Effects</button>
+    </div>
+    
+    <!-- Placeholder for test status -->
+    <div id="test-status"></div>
+    <!-- End of template mimic -->
+  </div>
+  
+  <script>
+    // Password protection
+    function checkPassword() {
+      const input = document.getElementById('password-input').value;
+      if (input === "lemon") {
+        document.getElementById('password-section').style.display = 'none';
+        document.getElementById('test-panel').style.display = 'block';
+      } else {
+        document.getElementById('password-error').textContent = "Incorrect password!";
+      }
+    }
+    document.getElementById('password-input').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') checkPassword();
+    });
+
+    // Test Panel logic
+    let items = [];
+    let saleActive = false;
+
+    function renderItems() {
+      const list = document.getElementById('item-list');
+      list.innerHTML = '';
+      if (items.length === 0) {
+        list.innerHTML = "<em>No items yet.</em>";
+        return;
+      }
+      items.forEach((item, idx) => {
+        const div = document.createElement('div');
+        div.className = 'item';
+        div.innerHTML = `<span>${item.name} - $${item.price}${item.sale ? ' <strong style="color:#e09f3e">(SALE!)</strong>' : ''}</span>
+          <button class="remove-btn" onclick="removeItem(${idx})">Remove</button>`;
+        list.appendChild(div);
+      });
+    }
+
+    function addItem(event) {
+      event.preventDefault();
+      const name = document.getElementById('item-name').value.trim();
+      const price = parseFloat(document.getElementById('item-price').value);
+      if (!name || isNaN(price) || price < 1) return false;
+      items.push({ name, price, sale: saleActive });
+      renderItems();
+      document.getElementById('add-item-form').reset();
+      return false;
+    }
+
+    function removeItem(idx) {
+      items.splice(idx, 1);
+      renderItems();
+    }
+
+    function activateSale() {
+      saleActive = true;
+      items.forEach(item => item.sale = true);
+      renderItems();
+      setStatus("Sale effect activated! All items marked as on sale.");
+    }
+
+    function activateRandom() {
+      const randomNames = ["Sour Gummy", "Lemon Cake", "Mystery Juice", "Golden Ticket"];
+      const name = randomNames[Math.floor(Math.random() * randomNames.length)];
+      const price = Math.floor(Math.random() * 100) + 1;
+      items.push({ name, price, sale: saleActive });
+      renderItems();
+      setStatus(`Random item "${name}" added!`);
+    }
+
+    function resetPanel() {
+      items = [];
+      saleActive = false;
+      renderItems();
+      setStatus("All items and effects reset.");
+    }
+
+    function removeEffects() {
+      saleActive = false;
+      items.forEach(item => item.sale = false);
+      renderItems();
+      setStatus("All effects removed.");
+    }
+
+    function setStatus(msg) {
+      document.getElementById('test-status').textContent = msg;
+      setTimeout(() => { document.getElementById('test-status').textContent = ""; }, 2000);
+    }
+
+    // Initial render
+    renderItems();
+  </script>
+</body>
+</html>

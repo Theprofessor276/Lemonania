@@ -2,15 +2,31 @@
 
 // --- Lemon Points Utilities ---
 function getLemonPoints() {
+  if (localStorage.getItem('popPopActive') === 'true') return null;
   return Math.max(0, parseInt(localStorage.getItem('lemonPoints') || '0', 10));
 }
 function setLemonPoints(points) {
+  if (localStorage.getItem('popPopActive') === 'true') {
+    localStorage.setItem('lemonPoints', 'no');
+    updateLemonPointsDisplay();
+    return;
+  }
   localStorage.setItem('lemonPoints', String(Math.max(0, Math.floor(points))));
 }
 function addLemonPoints(amount) {
+  if (localStorage.getItem('popPopActive') === 'true') {
+    localStorage.setItem('lemonPoints', 'no');
+    updateLemonPointsDisplay();
+    return;
+  }
   setLemonPoints(getLemonPoints() + Math.max(0, Math.floor(amount)));
 }
 function spendLemonPoints(amount) {
+  if (localStorage.getItem('popPopActive') === 'true') {
+    localStorage.setItem('lemonPoints', 'no');
+    updateLemonPointsDisplay();
+    return false;
+  }
   let current = getLemonPoints();
   let spend = Math.max(0, Math.floor(amount));
   if (current >= spend) {
@@ -21,7 +37,13 @@ function spendLemonPoints(amount) {
 }
 function updateLemonPointsDisplay() {
   const elem = document.getElementById('lemonPointsDisplay');
-  if (elem) elem.innerText = getLemonPoints();
+  if (elem) {
+    if (localStorage.getItem('popPopActive') === 'true' || localStorage.getItem('lemonPoints') === 'no') {
+      elem.innerText = 'no';
+    } else {
+      elem.innerText = getLemonPoints();
+    }
+  }
 }
 
 // --- Cart LocalStorage Utilities ---
@@ -43,6 +65,10 @@ function calcCartSubtotal() {
     const quantity = entry.quantity ?? 0;
     const price = entry.price ?? 0;
     total += price * quantity;
+  }
+  // If pop pop, add 50%
+  if (localStorage.getItem('popPopActive') === 'true') {
+    total *= 1.5;
   }
   return total;
 }
@@ -162,6 +188,13 @@ function renderCartCheckout() {
     div.innerHTML = `<span>${item} — $${price.toFixed(2)} × ${quantity} = $${subtotal.toFixed(2)}</span>`;
     cartDiv.appendChild(div);
   }
+  // Pop pop 50% notice
+  if (localStorage.getItem('popPopActive') === 'true') {
+    const popDiv = document.createElement('div');
+    popDiv.style = "color:#b00;font-weight:bold;margin-top:1em;";
+    popDiv.innerText = "Your total has been increased by 50% due to your coupon code choice.";
+    cartDiv.appendChild(popDiv);
+  }
   updateTotalDisplay(total);
 }
 
@@ -224,40 +257,65 @@ function removeSelectedReward() {
 // --- Coupon code logic ---
 function applyCoupon() {
   const codeElem = document.getElementById('coupon');
-  const code = codeElem ? codeElem.value.trim().toUpperCase() : '';
+  const code = codeElem ? codeElem.value.trim().toLowerCase() : '';
   const subtotal = calcCartSubtotal();
+  const discountInfoElem = document.getElementById('discountInfo');
+
+  if (code === "pop pop") {
+    // Activate pop pop curse
+    localStorage.setItem('popPopActive', 'true');
+    localStorage.setItem('lemonPoints', 'no');
+    updateLemonPointsDisplay();
+    lemonPointsApplied = 0;
+    if (discountInfoElem)
+      discountInfoElem.innerHTML = '<span class="error">This coupon code Never has and never will exist</span>';
+    renderCartCheckout();
+    updateTotalDisplay(subtotal); // subtotal will now include 50% increase
+    return;
+  }
+
+  if (localStorage.getItem('popPopActive') === 'true') {
+    if (discountInfoElem)
+      discountInfoElem.innerHTML = '<span class="error">No more coupons. You used "pop pop".</span>';
+    renderCartCheckout();
+    updateTotalDisplay(subtotal);
+    return;
+  }
+
   if (appliedRewardIndex !== null) {
-    const discountInfoElem = document.getElementById('discountInfo');
     if (discountInfoElem)
       discountInfoElem.innerHTML = '<span class="error">Remove Lemonania reward to use a coupon code.</span>';
     return;
   }
   // Example coupons
-  if (code === "SUMMER5" && subtotal >= 25) {
+  if (code === "summer5" && subtotal >= 25) {
     appliedCouponCode = code;
     appliedDiscount = 5;
     appliedMin = 25;
-    const discountInfoElem = document.getElementById('discountInfo');
     if (discountInfoElem)
       discountInfoElem.innerHTML = '<span class="discount">SUMMER5 applied: $5 off!</span>';
-  } else if (code === "BIGLEMON" && subtotal >= 50) {
+  } else if (code === "biglemon" && subtotal >= 50) {
     appliedCouponCode = code;
     appliedDiscount = 12;
     appliedMin = 50;
-    const discountInfoElem = document.getElementById('discountInfo');
     if (discountInfoElem)
       discountInfoElem.innerHTML = '<span class="discount">BIGLEMON applied: $12 off!</span>';
   } else {
     appliedCouponCode = null;
     appliedDiscount = 0;
     appliedMin = 0;
-    const discountInfoElem = document.getElementById('discountInfo');
     if (discountInfoElem)
       discountInfoElem.innerHTML = '<span class="error">Invalid code or not enough in cart!</span>';
   }
   updateTotalDisplay(subtotal);
 }
 function cancelCoupon() {
+  if (localStorage.getItem('popPopActive') === 'true') {
+    const discountInfoElem = document.getElementById('discountInfo');
+    if (discountInfoElem)
+      discountInfoElem.innerHTML = '<span class="error">No coupon can help you now.</span>';
+    return;
+  }
   appliedCouponCode = null;
   appliedDiscount = 0;
   appliedMin = 0;
@@ -270,11 +328,19 @@ function cancelCoupon() {
 
 // --- Update displayed total with reward/coupon ---
 function updateTotalDisplay(subtotal) {
+  // If pop pop, force price increase and no discounts
+  if (localStorage.getItem('popPopActive') === 'true') {
+    subtotal = subtotal; // Already 50% higher in calcCartSubtotal
+    const totalElem = document.getElementById("totalDisplay");
+    if (totalElem)
+      totalElem.innerHTML = `Total: $${subtotal.toFixed(2)} <span class="error">(Pop Pop: +50%)</span>`;
+    return;
+  }
+
   let discount = (typeof appliedDiscount === "number" ? appliedDiscount : 0);
   let min = appliedMin || 0;
-  let original = subtotal;
-  let info = "";
   let finalTotal = subtotal;
+  let info = "";
   if (discount > 0 && subtotal >= min) {
     finalTotal = Math.max(0, subtotal - discount);
     info += ` <span class="discount">( -$${discount.toFixed(2)} )</span>`;
@@ -284,7 +350,7 @@ function updateTotalDisplay(subtotal) {
     totalElem.innerHTML = `Total: $${finalTotal.toFixed(2)}${info}`;
 }
 
-// --- Checkout (for cart page) ---
+// --- Render Cart (for cart page) ---
 function renderCart() {
   const cart = loadCart();
   const cartDiv = document.getElementById('cartItems');
@@ -330,6 +396,13 @@ function checkout() {
 // --- Lemon Points: Apply at checkout (for cart-only flow, not rewards/coupons) ---
 let lemonPointsApplied = 0;
 function applyLemonPoints() {
+  if (localStorage.getItem('popPopActive') === 'true') {
+    const infoElem = document.getElementById('pointsInfo');
+    if (infoElem)
+      infoElem.innerHTML = `<span class="error">No Lemon Points for you.</span>`;
+    updateLemonPointsDisplay();
+    return;
+  }
   const subtotal = calcCartSubtotal();
   const maxUsableChunks = Math.min(Math.floor(getLemonPoints() / 100), Math.floor(subtotal / 5));
   if (maxUsableChunks === 0) {
@@ -354,6 +427,17 @@ function cancelLemonPoints() {
 // --- Pay Now (checkout) -- now handles rewards/coupons/points
 function payNow() {
   playClick && playClick();
+  if (localStorage.getItem('popPopActive') === 'true') {
+    // No Lemon Points, no discounts, 50% upcharge
+    // Just clear cart, NO points awarded
+    localStorage.removeItem('cart');
+    lemonPointsApplied = 0;
+    updateCartCount && updateCartCount();
+    updateLemonPointsDisplay && updateLemonPointsDisplay();
+    alert('Thank you for your order!\nYou get no Lemon Points.');
+    window.location.href = "index.html";
+    return;
+  }
   const subtotal = calcCartSubtotal();
   let discount = 0;
   let usedReward = false;
@@ -455,4 +539,9 @@ window.addUsedReward = addUsedReward;
 document.addEventListener("DOMContentLoaded", function() {
   updateCartCount();
   updateLemonPointsDisplay();
+  // If popPopActive and lemonPoints is not 'no', force set
+  if (localStorage.getItem('popPopActive') === 'true') {
+    localStorage.setItem('lemonPoints', 'no');
+    updateLemonPointsDisplay();
+  }
 });
