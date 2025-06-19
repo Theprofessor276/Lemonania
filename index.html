@@ -12,18 +12,7 @@
   </head>
   <body>
     <div id="boc">
-      <div style="float:right; font-size:1.1em; margin:-0.5em 0 1em 0;">
-        🍋 Lemon Points: <span id="lemonPointsDisplay">0</span>
-      </div>
-      <header>
-        <img src="banner.png" title="Lemonania banner" alt="Lemonania banner" style="width:100%">
-      </header>
-      <div id="nav"></div>
-      <script>
-        fetch("nav.html")
-          .then(r => r.text())
-          .then(html => { document.getElementById("nav").innerHTML = html; });
-      </script>
+      <div id="lemonania-header"></div>
       <main>
         <h1>Welcome to Lemonania</h1>
         <blockquote>
@@ -46,7 +35,12 @@
     </div>
     <script src="script.js"></script>
     <script>
-      document.addEventListener("DOMContentLoaded", updateLemonPointsDisplay);
+      fetch('header.html')
+        .then(r => r.text())
+        .then(html => {
+          document.getElementById('lemonania-header').innerHTML = html;
+          if (typeof updateLemonPointsDisplay === "function") updateLemonPointsDisplay();
+        });
     </script>
   </body>
 </html>

@@ -5,7 +5,7 @@
     <link rel="stylesheet" href="style.css">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Lemonania Menu</title>
+    <title>Lemonania Merch</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Lemon&family=Lobster&display=swap" rel="stylesheet">
@@ -19,18 +19,7 @@
       </div>
     </div>
     <div id="boc">
-      <div style="float:right; font-size:1.1em; margin:-0.5em 0 1em 0;">
-        🍋 Lemon Points: <span id="lemonPointsDisplay">0</span>
-      </div>
-      <header>
-        <img src="banner.png" title="Lemonania banner" alt="Lemonania banner" style="width:100%">
-      </header>
-      <div id="nav"></div>
-      <script>
-        fetch("nav.html")
-          .then(r => r.text())
-          .then(html => { document.getElementById("nav").innerHTML = html; });
-      </script>
+      <div id="lemonania-header"></div>
       <main>
         <h1>MERCH</h1>
         <blockquote>Lemonania’s merchandise is designed for the true lemon enthusiast—bold, quirky, and completely unnecessary. From the Quantum Lemon Hoodie, which may or may not exist at any given moment, to the Invisible Lemon Glass, which definitely exists (trust us), every item is crafted to embody the absurdity of extreme citrus devotion. Whether you’re proudly sporting the "I Survived the Forbidden Lemon" T-Shirt or clutching your Lemon Vault Keychain, you’ll feel an undeniable connection to the world’s most mysterious lemon restaurant. For those seeking the ultimate collectible, the Forbidden Lemon Replica serves as a powerful reminder that some citrus truths are best left undiscovered. 🍋✨✨</blockquote>
@@ -58,7 +47,6 @@
             </li>
           </ul>
         </section>
-
         <section class="s4">
           <h2>Drinkware</h2>
           <ul class="dropdown">
@@ -76,7 +64,6 @@
             </li>
           </ul>
         </section>
-
         <section class="s3">
           <h2>Accessories &amp; Decor</h2>
           <ul>
@@ -98,7 +85,6 @@
           </li>
           </ul>
         </section>
-
         <section class="s4">
           <h2>Oddities</h2>
           <ul>
@@ -120,15 +106,19 @@
           </li>
           </ul>
         </section>
-
       </div>
       <footer>Created By Alan Zachary O'Keefe &copy; 2027</footer>
     </div>
     <script src="script.js"></script>
     <script>
+      fetch('header.html')
+        .then(r => r.text())
+        .then(html => {
+          document.getElementById('lemonania-header').innerHTML = html;
+          if (typeof updateLemonPointsDisplay === "function") updateLemonPointsDisplay();
+        });
       document.addEventListener("DOMContentLoaded", function() {
         updateCartCount();
-        updateLemonPointsDisplay();
       });
     </script>
   </body>

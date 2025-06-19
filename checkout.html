@@ -49,18 +49,17 @@
     }
     #boc { min-height: 80vh; }
   </style>
-  <script src="coupon-codes.js"></script>
 </head>
 <body>
   <div id="boc">
-    <header>
-      <img src="banner.png" title="Lemonania banner" alt="Lemonania banner" style="width:100%">
-    </header>
-    <div id="nav"></div>
+    <div id="lemonania-header"></div>
     <script>
-      fetch("nav.html")
+      fetch('header.html')
         .then(r => r.text())
-        .then(html => { document.getElementById("nav").innerHTML = html; });
+        .then(html => {
+          document.getElementById('lemonania-header').innerHTML = html;
+          if (typeof updateLemonPointsDisplay === "function") updateLemonPointsDisplay();
+        });
     </script>
     <main>
       <h2>Review Your Order</h2>
@@ -77,6 +76,7 @@
       <button class="pay-btn" onclick="payNow()">Pay Now</button>
     </main>
   </div>
+  <script src="script.js"></script>
   <script>
     // --- Lemon Points helpers ---
     function getLemonPoints() {
@@ -85,7 +85,9 @@
     function setLemonPoints(points) {
       localStorage.setItem('lemonPoints', String(Math.max(0, Math.floor(points))));
     }
-    function updateLemonPointsDisplay() {}
+    function updateLemonPointsDisplay() {
+      // Not shown on this page, but present for extensibility.
+    }
 
     // --- Cart helpers ---
     function loadCart() {
@@ -135,7 +137,6 @@
     let appliedCouponCode = null;
     let appliedDiscount = 0;
     let appliedMin = 0;
-    let appliedCouponObj = null;
 
     // --- Render cart ---
     function renderCartCheckout() {
@@ -177,13 +178,9 @@
       let options = rewards.map((r, i) => {
         let disabled = subtotal < r.min ? "disabled" : "";
         let checked = appliedRewardIndex === i ? "checked" : "";
-        let incompatStr = "";
-        if (Array.isArray(r.incompatibleWith) && r.incompatibleWith.length > 0) {
-          incompatStr = `<span style="color:#c00;">(Incompatible with: ${r.incompatibleWith.join(", ")})</span>`;
-        }
         return `<label class="reward-option">
           <input type="radio" name="reward" value="${i}" ${checked} ${disabled} onchange="selectReward(${i})">
-          ${r.label || r.code}: $${r.value} off (min $${r.min}) ${incompatStr} ${subtotal < r.min ? '<span style="color:#c00;">(need $' + r.min + ' in cart)</span>' : ''}
+          ${r.label || r.code}: $${r.value} off (min $${r.min}) ${subtotal < r.min ? '<span style="color:#c00;">(need $' + r.min + ' in cart)</span>' : ''}
         </label>`;
       }).join('');
       area.innerHTML = `<div class="reward-select"><b>Use a Lemonania Reward:</b><br>${options}
@@ -200,13 +197,12 @@
         appliedCouponCode = null;
         appliedDiscount = appliedReward.value;
         appliedMin = appliedReward.min;
-        appliedCouponObj = null;
       } else {
+        // Don't apply if not eligible
         appliedRewardIndex = null;
         appliedReward = null;
         appliedDiscount = 0;
         appliedMin = 0;
-        appliedCouponObj = null;
       }
       renderRewardArea();
       updateTotalDisplay(calcCartSubtotal());
@@ -218,12 +214,11 @@
       appliedReward = null;
       appliedDiscount = 0;
       appliedMin = 0;
-      appliedCouponObj = null;
       renderRewardArea();
       updateTotalDisplay(calcCartSubtotal());
     }
 
-    // --- Coupon code logic (loads from coupon-codes.js) ---
+    // --- Coupon code logic ---
     function applyCoupon() {
       const code = document.getElementById('coupon').value.trim().toUpperCase();
       const subtotal = calcCartSubtotal();
@@ -231,41 +226,21 @@
         document.getElementById('discountInfo').innerHTML = '<span class="error">Remove Lemonania reward to use a coupon code.</span>';
         return;
       }
-      // Get coupon info from external file
-      const coupon = typeof getCouponByCode === "function" ? getCouponByCode(code) : null;
-      // Check for 'all' incompatibility (with any reward in myRewards)
-      const rewards = getMyRewards();
-      let incompatible = false;
-      if (coupon) {
-        if (coupon.incompatibleWith === 'all') {
-          if (rewards.length > 0) incompatible = true;
-        } else if (Array.isArray(coupon.incompatibleWith)) {
-          for (let r of rewards) {
-            if (coupon.incompatibleWith.includes(r.code)) {
-              incompatible = true;
-              break;
-            }
-          }
-        }
-      }
-      if (coupon && subtotal >= coupon.min && !incompatible) {
+      // Example coupons
+      if (code === "SUMMER5" && subtotal >= 25) {
         appliedCouponCode = code;
-        appliedDiscount = coupon.discount;
-        appliedMin = coupon.min;
-        appliedCouponObj = coupon;
-        document.getElementById('discountInfo').innerHTML =
-          `<span class="discount">${coupon.label || code + " applied!"} Incompatible with: ${coupon.incompatibleWith === 'all' ? 'All Lemon Point Rewards' : (coupon.incompatibleWith||[]).join(', ')}</span>`;
-      } else if (incompatible) {
-        document.getElementById('discountInfo').innerHTML = '<span class="error">This coupon is incompatible with your Lemon Point rewards.</span>';
-        appliedCouponCode = null;
-        appliedDiscount = 0;
-        appliedMin = 0;
-        appliedCouponObj = null;
+        appliedDiscount = 5;
+        appliedMin = 25;
+        document.getElementById('discountInfo').innerHTML = '<span class="discount">SUMMER5 applied: $5 off!</span>';
+      } else if (code === "BIGLEMON" && subtotal >= 50) {
+        appliedCouponCode = code;
+        appliedDiscount = 12;
+        appliedMin = 50;
+        document.getElementById('discountInfo').innerHTML = '<span class="discount">BIGLEMON applied: $12 off!</span>';
       } else {
         appliedCouponCode = null;
         appliedDiscount = 0;
         appliedMin = 0;
-        appliedCouponObj = null;
         document.getElementById('discountInfo').innerHTML = '<span class="error">Invalid code or not enough in cart!</span>';
       }
       updateTotalDisplay(subtotal);
@@ -274,7 +249,6 @@
       appliedCouponCode = null;
       appliedDiscount = 0;
       appliedMin = 0;
-      appliedCouponObj = null;
       document.getElementById('coupon').value = '';
       document.getElementById('discountInfo').innerHTML = '';
       updateTotalDisplay(calcCartSubtotal());
@@ -284,8 +258,9 @@
     function updateTotalDisplay(subtotal) {
       let discount = (typeof appliedDiscount === "number" ? appliedDiscount : 0);
       let min = appliedMin || 0;
-      let finalTotal = subtotal;
+      let original = subtotal;
       let info = "";
+      let finalTotal = subtotal;
       if (discount > 0 && subtotal >= min) {
         finalTotal = Math.max(0, subtotal - discount);
         info += ` <span class="discount">( -$${discount.toFixed(2)} )</span>`;
@@ -314,7 +289,6 @@
       appliedCouponCode = null;
       appliedDiscount = 0;
       appliedMin = 0;
-      appliedCouponObj = null;
       // Clear cart
       localStorage.removeItem('cart');
       alert(`Thank you for your order!\nYou earned ${pointsEarned} Lemon Points! 🍋`);

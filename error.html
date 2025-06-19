@@ -8,26 +8,25 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Lemon&family=Lobster&display=swap" rel="stylesheet">
-     <link rel="icon" type="image/svg+xml" href="Lemon.png">
+    <link rel="icon" type="image/svg+xml" href="Lemon.png">
   </head>
   <body>
     <div id="boc">
-      <header>
-        <img src="banner.png" title="Lemonania banner" alt="Lemonania banner" style="width:100%">
-      </header>
-<div id="nav"></div>
-<script>
-  fetch("nav.html")
-    .then(r => r.text())
-    .then(html => { document.getElementById("nav").innerHTML = html; });
-</script>
+      <div id="lemonania-header"></div>
       <main style='text-align:center;'>
         Error 503 - Service Unavailable Oops! Our order system is currently down. 🍋😢 We’re experiencing technical difficulties and working hard to fix the issue. Please check back later!<br>
       <img src="Errorlemon.png" alt='Working lemon' title="Lemon working hard" >
       </main>
-      <!--That was a lie -->
       <p style="text-align: center;"><a class='retrybtn' href="error.html">Retry</a></p>
     </div>
     <script src="script.js"></script>
+    <script>
+      fetch('header.html')
+        .then(r => r.text())
+        .then(html => {
+          document.getElementById('lemonania-header').innerHTML = html;
+          if (typeof updateLemonPointsDisplay === "function") updateLemonPointsDisplay();
+        });
+    </script>
   </body>
 </html>

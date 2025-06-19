@@ -58,15 +58,7 @@
 </head>
 <body>
   <div id="boc">
-    <header>
-      <img src="banner.png" title="Lemonania banner" alt="Lemonania banner" style="width:100%">
-    </header>
-    <div id="nav"></div>
-    <script>
-      fetch("nav.html")
-        .then(r => r.text())
-        .then(html => { document.getElementById("nav").innerHTML = html; });
-    </script>
+    <div id="lemonania-header"></div>
     <main>
       <h1>Lemonania Rewards</h1>
       <blockquote>
@@ -109,17 +101,6 @@
     <footer>Created By Alan Zachary O'Keefe &copy; 2027</footer>
   </div>
   <script>
-    // Define incompatibility: By default, all coupons are incompatible with all others
-    // If you want to make some compatible, add them to the compatibleWith array
-    const couponIncompatibilities = {
-      SOUR5: ['ZEST10','LEMONANIA15'],
-      ZEST10: ['SOUR5','LEMONANIA15'],
-      LEMONANIA15: ['SOUR5','ZEST10'],
-      // Add more here if you add more coupons
-    };
-    // For future: If you want some to be compatible, remove from each other's lists.
-
-    // --- Lemon Points helpers ---
     function getLemonPoints() {
       return Math.max(0, parseInt(localStorage.getItem('lemonPoints') || '0', 10));
     }
@@ -139,8 +120,6 @@
       const elem = document.getElementById('lemonPointsDisplay');
       if (elem) elem.innerText = getLemonPoints();
     }
-
-    // --- Reward storage helpers ---
     function getMyRewards() {
       try {
         return JSON.parse(localStorage.getItem('myRewards')) || [];
@@ -153,9 +132,7 @@
     }
     function addMyReward(code, value, min, label) {
       const rewards = getMyRewards();
-      // Add incompatibleWith to each reward
-      const incompatibleWith = couponIncompatibilities[code] || [];
-      rewards.push({ code, value, min, label, incompatibleWith });
+      rewards.push({ code, value, min, label });
       saveMyRewards(rewards);
     }
     function displayMyRewards() {
@@ -170,8 +147,6 @@
         `<span class="reward-chip">${r.label || r.code}: $${r.value} off (min $${r.min})</span>`
       ).join('');
     }
-
-    // --- Reward buying logic ---
     function buyReward(code, value, min, pointCost, label) {
       const msgDiv = document.getElementById('rewardMsg');
       if (getLemonPoints() < pointCost) {
@@ -191,12 +166,16 @@
         msgDiv.innerHTML = `<span class="reward-error">Something went wrong. Try again!</span>`;
       }
     }
-
-    // --- Init ---
     document.addEventListener("DOMContentLoaded", function() {
       updateLemonPointsDisplay();
       displayMyRewards();
     });
+    fetch('header.html')
+      .then(r => r.text())
+      .then(html => {
+        document.getElementById('lemonania-header').innerHTML = html;
+        if (typeof updateLemonPointsDisplay === "function") updateLemonPointsDisplay();
+      });
   </script>
 </body>
 </html>

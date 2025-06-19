@@ -8,19 +8,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Lemon&family=Lobster&display=swap" rel="stylesheet">
-     <link rel="icon" type="image/svg+xml" href="Lemon.png">
+    <link rel="icon" type="image/svg+xml" href="Lemon.png">
   </head>
   <body>
     <div id="boc">
-      <header>
-        <img src="banner.png" title="Lemonania banner" alt="Lemonania banner" style="width:100%">
-      </header>
-      <div id="nav"></div>
-      <script>
-        fetch("nav.html")
-          .then(r => r.text())
-          .then(html => { document.getElementById("nav").innerHTML = html; });
-      </script>
+      <div id="lemonania-header"></div>
       <main>
         <h2>Lemonania End User License Agreement (EULA)</h2>      
         <p>Welcome to Lemonania, the premier establishment dedicated to the obsessive admiration, consumption, and philosophical contemplation of lemons. By accessing, browsing, or attempting to engage with Lemonania, you hereby agree to abide by the following highly necessary and completely enforceable terms:</p>
@@ -57,7 +49,17 @@
   <li><strong>The Zest Overload Contingency Plan<br></strong> – Should global zest levels exceed acceptable limits, users agree to participate in <strong>Zest Redistribution Strategies</strong>, ensuring balance is maintained throughout the Lemon Realm.</li>
   <li><strong>Irrevocable Lemon Destiny Clause<br></strong> – Users acknowledge that their fate is now permanently aligned with <strong>The Eternal Citrus Cycle</strong>. Attempts to deviate from this destiny will be corrected through <strong>Immediate Lemon Intervention</strong>.</li>
 </ol>
-</main></div>
-<script src="script.js"></script>
+      </main>
+      <footer>Created By Alan Zachary O'Keefe &copy; 2027</footer>
+    </div>
+    <script src="script.js"></script>
+    <script>
+      fetch('header.html')
+        .then(r => r.text())
+        .then(html => {
+          document.getElementById('lemonania-header').innerHTML = html;
+          if (typeof updateLemonPointsDisplay === "function") updateLemonPointsDisplay();
+        });
+    </script>
   </body>
 </html>

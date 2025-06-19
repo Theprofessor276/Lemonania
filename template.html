@@ -12,15 +12,14 @@
   </head>
   <body>
     <div id="boc">
-      <header>
-      <img src="banner.png" title="Lemonania banner" alt="Lemonania banner" style="width:100%">
-      </header>
-<div id="nav"></div>
-<script>
-  fetch("nav.html")
-    .then(r => r.text())
-    .then(html => { document.getElementById("nav").innerHTML = html; });
-</script>
+  <div id="lemonania-header"></div>
+  <script>
+    fetch('header.html')
+      .then(r => r.text())
+      .then(html => {
+        document.getElementById('lemonania-header').innerHTML = html;
+      });
+  </script>
       <main>
         <p>Text</p>
       </main>
@@ -35,5 +34,10 @@
         <footer>Created By Alan Zachary O'Keefe &copy; 2027</footer>
     </div>
 <script src="script.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      updateLemonPointsDisplay();
+    });
+  </script>
   </body>
 </html>

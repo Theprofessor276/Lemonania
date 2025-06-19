@@ -12,15 +12,7 @@
   </head>
   <body>
     <div id="boc">
-      <header>
-      <img src="banner.png" title="Lemonania banner" alt="Lemonania banner" style="width:100%">
-      </header>
-      <div id="nav"></div>
-      <script>
-        fetch("nav.html")
-          .then(r => r.text())
-          .then(html => { document.getElementById("nav").innerHTML = html; });
-      </script>
+      <div id="lemonania-header"></div>
       <main>
         <h1>Social Media</h1>
         <p>Follow us on our social media platforms to stay updated with the latest news, promotions, and events at Lemonania!</p>
@@ -34,49 +26,14 @@
       </main>
      <footer>Created By Alan Zachary O'Keefe &copy; 2027</footer>
     </div>
+    <script src="script.js"></script>
     <script>
-    function loadCart() {
-      try {
-        return JSON.parse(localStorage.getItem('cart')) || {};
-      } catch {
-        return {};
-      }
-    }
-
-    function saveCart(cart) {
-      localStorage.setItem('cart', JSON.stringify(cart));
-    }
-
-    function addToCart(itemName, price) {
-      const cart = loadCart();
-
-      if (!cart[itemName]) {
-        cart[itemName] = {
-          quantity: 1,
-          price: price
-        };
-      } else {
-        cart[itemName].quantity += 1;
-      }
-
-      saveCart(cart);
-      updateCartCount();
-    }
-
-    function updateCartCount() {
-      const cart = loadCart();
-      let count = 0;
-      for (const item in cart) {
-        count += cart[item].quantity || 0;
-      }
-      document.getElementById('cartCount').innerText = count;
-    }
-
-    function goToCart() {
-      window.location.href = "cart.html";
-    }
-
-    updateCartCount(); // Run on page load
-  </script>
+      fetch('header.html')
+        .then(r => r.text())
+        .then(html => {
+          document.getElementById('lemonania-header').innerHTML = html;
+          if (typeof updateLemonPointsDisplay === "function") updateLemonPointsDisplay();
+        });
+    </script>
   </body>
 </html>
