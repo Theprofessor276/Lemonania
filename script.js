@@ -49,7 +49,7 @@ function sendVerificationEmail(toEmail, username, code, cb) {
       template_id: EMAILJS_TEMPLATE,
       user_id: EMAILJS_PUBLIC_KEY,
       template_params: {
-        'to_email': toEmail,
+        'email': toEmail, // <-- FIXED: must match {{email}} in your template!
         'username': username,
         'passcode': code,
         'time': expiry
@@ -69,7 +69,7 @@ function sendAccountVerifiedEmail(toEmail, username, cb) {
       template_id: EMAILJS_TEMPLATE_VERIFIED,
       user_id: EMAILJS_PUBLIC_KEY,
       template_params: {
-        'to_email': toEmail,
+        'email': toEmail, // <-- FIXED: must match {{email}} in your template!
         'username': username
       }
     })
@@ -99,11 +99,11 @@ function renderAccountArea() {
   } else {
     const u = getUser(user);
     let pfp = u && u.pfp ? `<img src="${u.pfp}" class="pfp-img" alt="Profile Picture"><br>` : '';
-let emailStatus = u && u.verified
-  ? `<span class="success">Verified</span>`
-  : `<span class="error">Not Verified</span>
-     <span class="fake-link" onclick="showVerifyPrompt()">[Verify Now]</span>
-     <span class="fake-link" onclick="resendVerificationEmail()">[Resend]</span>`;
+    let emailStatus = u && u.verified
+      ? `<span class="success">Verified</span>`
+      : `<span class="error">Not Verified</span>
+         <span class="fake-link" onclick="showVerifyPrompt()">[Verify Now]</span>
+         <span class="fake-link" onclick="resendVerificationEmail()">[Resend]</span>`;
     if (!document.getElementById('accountArea')) return;
     document.getElementById('accountArea').innerHTML = `
       <h2>Your Lemonania Account</h2>
@@ -184,6 +184,14 @@ window.loginUser = function() {
   if (!u || u.password !== password) { msg.innerHTML = '<span class="error">Incorrect username or password.</span>'; return; }
   setCurrentUser(username);
   migrateUserDataToThisUser(username);
+  // If not verified, make sure code exists and resend email automatically
+  if (!u.verified) {
+    if (!u.code) {
+      u.code = Math.floor(100000 + Math.random()*900000).toString();
+      setUser(username, u);
+    }
+    sendVerificationEmail(u.email, username, u.code, function(){});
+  }
   renderAccountArea();
 }
 
@@ -350,19 +358,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
 // === Lemonania Account System Additions End ===
 
-
-// --- rest of your untouched Lemonania code below ---
-// (Paste your existing script.js here.)
-// --- (from previous script.js, see previous message for full Lemonania cart/points/shop code) ---
-
-// (PASTE the content of your previous script.js here AFTER the account system additions above.)
-// For brevity, and since your script.js is already in the repo, you can copy-paste all content from your main branch's script.js
-// right after the account system code above. Remove the duplicate account system code if present at the bottom.
-
-
 // === Begin Untouched Lemonania Core Shop/Cart/Points/Coupon Code ===
-// (Copy-paste from your current 'script.js' starting from the line:
-// // Robust Lemonania shop.js: Cart, Lemon Points, Rewards, Coupons and click sounds
-// ... all the way to the end of the file.)
-// (See previous answers or your repo for the latest copy.)
+
+// ... (PASTE ALL REMAINING SHOP/CART/POINTS/COUPON CODE HERE AS IT ALREADY EXISTS IN YOUR script.js) ...
+
 // === End Untouched Lemonania Core ===
