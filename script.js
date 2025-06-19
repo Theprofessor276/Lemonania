@@ -9,6 +9,15 @@ const EMAILJS_SERVICE = "service_3uepw1g";
 const EMAILJS_TEMPLATE = "template_bjwslao";
 const EMAILJS_PUBLIC_KEY = "MPEttrKFI6fFs8iNx";
 const EMAILJS_TEMPLATE_VERIFIED = "template_1zqrydx";
+(function loadCouponCodes() {
+  // Only load if not already loaded
+  if (typeof window.COUPON_CODES === "undefined") {
+    var script = document.createElement('script');
+    script.src = "coupon-codes.js";
+    script.async = false; // must load before checkout logic runs
+    document.head.appendChild(script);
+  }
+})();
 
 // --- User Storage Helpers ---
 function getAllUsers() {
@@ -555,3 +564,258 @@ function renderCart() {
 // Example: use loadCart()/saveCart() everywhere for cart logic.
 
 // === End Lemonania Core Shop/Cart/Points/Coupon Code ===
+
+// --- Restore checkout() nav for cart.html ---
+function checkout() {
+  window.location.href = "checkout.html";
+}
+// === Lemonania Checkout Page Functions ===
+
+// Render the cart on the checkout page
+function renderCartCheckout() {
+  const cart = loadCart();
+  const cartDiv = document.getElementById('cartItems');
+  if (!cartDiv) return;
+  cartDiv.innerHTML = '';
+  let total = 0;
+  if (Object.keys(cart).length === 0) {
+    cartDiv.innerText = "Your cart is empty.";
+    document.getElementById('totalDisplay').innerText = '';
+    return;
+  }
+  for (const item in cart) {
+    const entry = cart[item];
+    const quantity = entry.quantity ?? 0;
+    const price = entry.price ?? 0;
+    const subtotal = price * quantity;
+    total += subtotal;
+    const div = document.createElement('div');
+    div.className = 'item';
+    div.innerHTML = `
+      <span>${item} — $${formatPrice(price)} × ${quantity} = $${formatPrice(subtotal)}</span>
+    `;
+    cartDiv.appendChild(div);
+  }
+  // Save total to a global so coupon/reward can access it
+  window._lemonCheckoutBaseTotal = total;
+  updateCheckoutTotal();
+}
+
+// Render reward selection area (if you use Lemonania rewards)
+function renderRewardArea() {
+  const rewardDiv = document.getElementById('rewardArea');
+  if (!rewardDiv) return;
+  const rewards = getMyRewards();
+  if (!rewards || !rewards.length) {
+    rewardDiv.innerHTML = `<p style="color:#888;">No Lemonania rewards to use.</p>`;
+    return;
+  }
+  let html = `<div class="reward-select"><b>Use a Lemonania Reward:</b><br>`;
+  html += `<label class="reward-option"><input type="radio" name="reward" value="" checked> None</label>`;
+  for (let i = 0; i < rewards.length; ++i) {
+    const r = rewards[i];
+    html += `<label class="reward-option">
+      <input type="radio" name="reward" value="${r.code}" data-index="${i}">
+      ${r.label || r.code}: $${r.value} off (min $${r.min})
+    </label>`;
+  }
+  html += `</div>`;
+  rewardDiv.innerHTML = html;
+
+  // Attach change event
+  rewardDiv.querySelectorAll("input[type=radio][name=reward]").forEach(input => {
+    input.addEventListener('change', updateCheckoutTotal);
+  });
+}
+
+// Helper: get selected reward from radio
+function getSelectedReward() {
+  const radios = document.querySelectorAll("input[type=radio][name=reward]");
+  let idx = -1;
+  radios.forEach(r => {
+    if (r.checked && r.value) idx = parseInt(r.getAttribute("data-index"));
+  });
+  if (idx >= 0) {
+    const rewards = getMyRewards();
+    if (rewards && rewards[idx]) return rewards[idx];
+  }
+  return null;
+}
+
+// Helper: get applied coupon
+function getAppliedCoupon() {
+  return window._lemonAppliedCoupon || null;
+}
+
+// Helper: get coupon data from code (case-insensitive)
+function getCouponByCode(code) {
+  if (!window.COUPON_CODES) return null;
+  if (!code) return null;
+  const up = code.trim().toUpperCase();
+  if (window.COUPON_CODES.hasOwnProperty(up)) {
+    return { ...window.COUPON_CODES[up], code: up };
+  }
+  return null;
+}
+
+function isCouponExpired(coupon) {
+  if (!coupon || !coupon.expires) return false;
+  return Date.now() > coupon.expires;
+}
+
+// Helper: check if coupon and reward are compatible
+function isCouponIncompatibleWithReward(coupon, reward) {
+  if (!coupon || !reward) return false;
+  if (coupon.incompatibleWith === 'all') return true;
+  if (Array.isArray(coupon.incompatibleWith) && coupon.incompatibleWith.includes(reward.code)) return true;
+  return false;
+}
+
+// Helper: get subtotal for coupon-applicable items only
+function getCouponApplicableSubtotal(cart, coupon) {
+  if (!coupon || !cart) return 0;
+  if (!coupon.items || coupon.items.length === 0) {
+    // Applies to all items
+    return Object.values(cart).reduce((sum, entry) => sum + (entry.price * entry.quantity), 0);
+  }
+  // Only applies to certain items
+  let total = 0;
+  for (const [item, entry] of Object.entries(cart)) {
+    if (coupon.items.includes(item)) {
+      total += entry.price * entry.quantity;
+    }
+  }
+  return total;
+}
+
+// Update checkout total based on reward/coupon selection
+function updateCheckoutTotal() {
+  const baseTotal = window._lemonCheckoutBaseTotal || calcCartSubtotal();
+  let total = baseTotal;
+  let discount = 0;
+  let minRequired = 0;
+  let discountLabel = "";
+  let reward = getSelectedReward();
+  let coupon = getAppliedCoupon();
+  const cart = loadCart();
+
+  // Coupon takes precedence if both are selected (or block reward selection when using coupon)
+  if (coupon) {
+    // Only allow reward if compatible
+    if (reward && isCouponIncompatibleWithReward(coupon, reward)) {
+      reward = null; // Can't use both
+      document.querySelectorAll("input[type=radio][name=reward]").forEach(r => r.value && (r.checked = false));
+    }
+    const subt = getCouponApplicableSubtotal(cart, coupon);
+    if (subt >= coupon.min && !isCouponExpired(coupon)) {
+      discount = Math.min(coupon.discount, subt);
+      minRequired = coupon.min;
+      discountLabel = `${coupon.label || coupon.code}: -$${formatPrice(discount)}`;
+    } else if (isCouponExpired(coupon)) {
+      discountLabel = `<span style="color:#c00">Coupon expired!</span>`;
+    } else {
+      discountLabel = `<span style="color:#c00">Min $${coupon.min} order for coupon</span>`;
+    }
+  } else if (reward) {
+    if (baseTotal >= reward.min) {
+      discount = Math.min(reward.value, baseTotal);
+      minRequired = reward.min;
+      discountLabel = `${reward.label || reward.code}: -$${formatPrice(discount)}`;
+    } else {
+      discountLabel = `<span style="color:#c00">Min $${reward.min} order for reward</span>`;
+    }
+  }
+  total = Math.max(0, baseTotal - discount);
+
+  const totalDiv = document.getElementById('totalDisplay');
+  if (totalDiv) {
+    totalDiv.innerHTML = `
+      <span class="total">Order Total: $${formatPrice(total)}</span>
+      <br>
+      ${discount > 0 ? `<span class="discount">${discountLabel}</span>` : discountLabel}
+    `;
+  }
+}
+
+// Apply coupon code button
+function applyCoupon() {
+  const code = document.getElementById('coupon').value.trim();
+  const info = document.getElementById('discountInfo');
+  if (!code) {
+    info.innerHTML = `<span class="error">Enter a coupon code.</span>`;
+    return;
+  }
+  if (!window.COUPON_CODES) {
+    info.innerHTML = `<span class="error">Coupon system not loaded.</span>`;
+    return;
+  }
+  const coupon = getCouponByCode(code);
+  if (!coupon) {
+    info.innerHTML = `<span class="error">Invalid coupon code.</span>`;
+    window._lemonAppliedCoupon = null;
+    updateCheckoutTotal();
+    return;
+  }
+  if (isCouponExpired(coupon)) {
+    info.innerHTML = `<span class="error">Coupon expired.</span>`;
+    window._lemonAppliedCoupon = null;
+    updateCheckoutTotal();
+    return;
+  }
+  window._lemonAppliedCoupon = coupon;
+  info.innerHTML = `<span class="discount">Coupon applied: ${coupon.label || coupon.code}</span>`;
+  updateCheckoutTotal();
+}
+
+// Cancel coupon button
+function cancelCoupon() {
+  window._lemonAppliedCoupon = null;
+  document.getElementById('coupon').value = "";
+  document.getElementById('discountInfo').innerHTML = "";
+  updateCheckoutTotal();
+}
+
+// PAY NOW button logic
+function payNow() {
+  const cart = loadCart();
+  if (!cart || Object.keys(cart).length === 0) {
+    alert("Your cart is empty!");
+    return;
+  }
+  let baseTotal = window._lemonCheckoutBaseTotal || calcCartSubtotal();
+  let total = baseTotal;
+  let reward = getSelectedReward();
+  let coupon = getAppliedCoupon();
+  let discount = 0;
+  let ok = true;
+  // Coupon logic
+  if (coupon) {
+    const subt = getCouponApplicableSubtotal(cart, coupon);
+    if (isCouponExpired(coupon)) {
+      alert("Coupon expired!");
+      return;
+    }
+    if (subt < coupon.min) {
+      alert("Order does not meet minimum for this coupon.");
+      return;
+    }
+    discount = Math.min(coupon.discount, subt);
+  } else if (reward) {
+    if (baseTotal < reward.min) {
+      alert("Order does not meet minimum for this reward.");
+      return;
+    }
+    discount = Math.min(reward.value, baseTotal);
+    // Remove the used reward from user's list
+    let rewards = getMyRewards();
+    rewards = rewards.filter(r => r.code !== reward.code || r.label !== reward.label);
+    saveMyRewards(rewards);
+  }
+  total = Math.max(0, baseTotal - discount);
+
+  // Actually process payment (for demo, just clear cart and show message)
+  saveCart({});
+  window._lemonAppliedCoupon = null;
+  alert(`Thank you for your order! You paid $${formatPrice(total)}.`);
+  window.location.href = "index.html";
+}
