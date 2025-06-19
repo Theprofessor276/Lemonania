@@ -74,9 +74,9 @@ function calcCartSubtotal() {
     const price = entry.price ?? 0;
     total += price * quantity;
   }
-  // If pop pop, add 50%
+  // If pop pop, multiply price by 5
   if (localStorage.getItem('popPopActive') === 'true') {
-    total *= 1.5;
+    total *= 5;
   }
   return total;
 }
@@ -208,11 +208,11 @@ function renderCartCheckout() {
     div.innerHTML = `<span>${item} — $${price.toFixed(2)} × ${quantity} = $${subtotal.toFixed(2)}</span>`;
     cartDiv.appendChild(div);
   }
-  // Pop pop 50% notice
+  // Pop pop x5 notice
   if (localStorage.getItem('popPopActive') === 'true') {
     const popDiv = document.createElement('div');
     popDiv.style = "color:#b00;font-weight:bold;margin-top:1em;";
-    popDiv.innerText = "Your total has been increased by 50% due to your coupon code choice.";
+    popDiv.innerText = "Your total has been multiplied by 5 due to your coupon code choice.";
     cartDiv.appendChild(popDiv);
   }
   updateTotalDisplay(total);
@@ -290,7 +290,7 @@ function applyCoupon() {
     if (discountInfoElem)
       discountInfoElem.innerHTML = '<span class="error">This coupon code Never has and never will exist</span>';
     renderCartCheckout && renderCartCheckout();
-    updateTotalDisplay(calcCartSubtotal()); // subtotal will now include 50% increase
+    updateTotalDisplay(calcCartSubtotal()); // subtotal will now include x5
     return;
   }
 
@@ -367,12 +367,12 @@ function cancelCoupon() {
 
 // --- Update displayed total with reward/coupon ---
 function updateTotalDisplay(subtotal) {
-  // If pop pop, force price increase and no discounts
+  // If pop pop, force price x5 and no discounts
   if (localStorage.getItem('popPopActive') === 'true') {
-    subtotal = subtotal; // Already 50% higher in calcCartSubtotal
+    subtotal = subtotal; // Already x5 in calcCartSubtotal
     const totalElem = document.getElementById("totalDisplay");
     if (totalElem)
-      totalElem.innerHTML = `Total: $${subtotal.toFixed(2)} <span class="error">(Pop Pop: +50%)</span>`;
+      totalElem.innerHTML = `Total: $${subtotal.toFixed(2)} <span class="error">(Pop Pop: ×5)</span>`;
     return;
   }
 
@@ -468,7 +468,7 @@ function cancelLemonPoints() {
 function payNow() {
   playClick && playClick();
   if (localStorage.getItem('popPopActive') === 'true') {
-    // No Lemon Points, no discounts, 50% upcharge
+    // No Lemon Points, no discounts, x5 upcharge
     // Just clear cart, NO points awarded
     localStorage.removeItem('cart');
     lemonPointsApplied = 0;
