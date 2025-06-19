@@ -43,6 +43,10 @@
         font-weight:bold;
         margin-right:0.5em;
       }
+      .curse-warning { color: #fff; background: #c00; border-radius: 0.5em; font-size:1.12em; font-weight:bold; padding: 0.7em 1em; margin: 1em 0;}
+      .un-cursed { color: #090; font-weight: bold; }
+      .user-list { font-size: 1.05em; }
+      .user-list li { margin-bottom: 0.5em; }
     </style>
   </head>
   <body>
@@ -52,10 +56,14 @@
         <h1>Lemonania Debug Tools</h1>
 
         <div class="debug-section">
-          <h2>Pop Pop Curse</h2>
-          <button class="debug-btn" onclick="removePopPop()">Remove Pop Pop Curse</button>
-          <button class="debug-btn" onclick="activatePopPop()">Activate Pop Pop Curse</button>
-          <div id="debugStatus-pop" class="debug-status"></div>
+          <h2>Account & Pop Pop Curse</h2>
+          <div id="debugStatus-user"></div>
+          <div id="curse-tools"></div>
+        </div>
+
+        <div class="debug-section">
+          <h2>All Users</h2>
+          <div id="userDebug"></div>
         </div>
 
         <div class="debug-section">
@@ -124,64 +132,137 @@
           if (typeof updateLemonPointsDisplay === "function") updateLemonPointsDisplay();
         });
 
-      // Pop Pop
-      function removePopPop() {
-        localStorage.removeItem('popPopActive');
-        if(localStorage.getItem('lemonPoints') === 'no') {
-          localStorage.setItem('lemonPoints', '0');
+      // --- Show current user and curse status ---
+      function showDebugUserStatus() {
+        let out = '';
+        let tools = '';
+        if (typeof getCurrentUser !== "function" || typeof getUser !== "function") {
+          out = '<i>script.js not loaded or account system unavailable.</i>';
+        } else {
+          const u = getCurrentUser();
+          if (u) {
+            const obj = getUser(u);
+            out += `<b>Current User:</b> <code>${u}</code>`;
+            if (obj && obj.popPopCursed) {
+              out += ' <span class="curse-warning">POPP POP CURSE ACTIVE!</span>';
+              tools += `<button class="debug-btn" onclick="uncurseCurrentUser()">Remove Pop Pop Curse from this user</button>`;
+            } else {
+              out += ' <span class="un-cursed">Not Cursed</span>';
+              tools += `<button class="debug-btn" onclick="curseCurrentUserPopPop()">Apply Pop Pop Curse to this user</button>`;
+            }
+          } else {
+            out = '<i>None (not logged in)</i>';
+          }
         }
-        if (typeof updateLemonPointsDisplay === "function") updateLemonPointsDisplay();
-        document.getElementById('debugStatus-pop').innerText = 'Pop Pop curse removed! Lemon Points restored to 0.';
-      }
-      function activatePopPop() {
-        localStorage.setItem('popPopActive', 'true');
-        localStorage.setItem('lemonPoints', 'no');
-        if (typeof updateLemonPointsDisplay === "function") updateLemonPointsDisplay();
-        document.getElementById('debugStatus-pop').innerText = 'Pop Pop curse ACTIVATED! Lemon Points set to "no".';
+        document.getElementById('debugStatus-user').innerHTML = out;
+        document.getElementById('curse-tools').innerHTML = tools;
       }
 
-      // Lemon Points
+      function uncurseCurrentUser() {
+        const u = getCurrentUser && getCurrentUser();
+        if (!u) return;
+        let obj = getUser && getUser(u);
+        if (obj && obj.popPopCursed) {
+          delete obj.popPopCursed;
+          setUser && setUser(u, obj);
+          localStorage.setItem('lemonPoints__' + u, "0");
+          showDebugUserStatus();
+          showUserDebug();
+          alert("Pop Pop Curse removed! User can now earn Lemon Points and logout.");
+        }
+      }
+      function curseCurrentUserPopPop() {
+        const u = getCurrentUser && getCurrentUser();
+        if (!u) return;
+        let userObj = getUser && getUser(u);
+        if (!userObj) return;
+        userObj.popPopCursed = true;
+        setUser && setUser(u, userObj);
+        localStorage.setItem("lemonPoints__" + u, "0");
+        localStorage.setItem("myRewards__" + u, "[]");
+        localStorage.setItem("usedRewards__" + u, "[]");
+        showDebugUserStatus();
+        showUserDebug();
+        alert("Pop Pop Curse applied! User cannot logout, all prices x5, Lemon Points erased, and no rewards.");
+      }
+
+      // --- List all users, show curse/verify/password status ---
+      function showUserDebug() {
+        if (!window.getAllUsers) { document.getElementById('userDebug').innerHTML = "script.js not loaded!"; return; }
+        const all = getAllUsers();
+        let html = '';
+        if (!Object.keys(all).length) {
+          html = '<i>No users found in storage.</i>';
+        } else {
+          html = '<ul class="user-list">';
+          for (const uname in all) {
+            const u = all[uname];
+            html += `<li><b>${uname}</b> - email: <code>${u.email}</code> - verified: <code>${!!u.verified}</code>`;
+            if (u.popPopCursed) html += ' <span class="curse-warning">CURSED</span>';
+            else html += ' <span class="un-cursed">Not Cursed</span>';
+            html += `<br>Password: <code>${u.password}</code>`;
+            html += '</li>';
+          }
+          html += '</ul>';
+        }
+        document.getElementById('userDebug').innerHTML = html;
+      }
+
+      // --- Lemon Points ---
       function setLemonPointsDebug() {
+        if (!window.setLemonPoints || !window.getCurrentUser) return;
+        let u = getCurrentUser();
         let v = parseInt(document.getElementById('setLemonPointsInput').value, 10);
         if (isNaN(v) || v < 0) v = 0;
-        localStorage.setItem('lemonPoints', String(v));
+        setLemonPoints(v);
         if (typeof updateLemonPointsDisplay === "function") updateLemonPointsDisplay();
         document.getElementById('debugStatus-lemon').innerText = 'Lemon Points set to ' + v;
       }
       function addLemonPointsDebug(amt) {
-        let pts = parseInt(localStorage.getItem('lemonPoints') || '0',10);
+        if (!window.getLemonPoints || !window.setLemonPoints) return;
+        let pts = parseInt(getLemonPoints() || '0',10);
         pts += amt;
         if (pts < 0) pts = 0;
-        localStorage.setItem('lemonPoints', String(pts));
+        setLemonPoints(pts);
         if (typeof updateLemonPointsDisplay === "function") updateLemonPointsDisplay();
         document.getElementById('debugStatus-lemon').innerText = 'Lemon Points changed by ' + amt + ', now ' + pts;
       }
       function zeroLemonPoints() {
-        localStorage.setItem('lemonPoints', '0');
+        if (!window.setLemonPoints) return;
+        setLemonPoints(0);
         if (typeof updateLemonPointsDisplay === "function") updateLemonPointsDisplay();
         document.getElementById('debugStatus-lemon').innerText = 'Lemon Points set to 0.';
       }
 
-      // Cart
+      // --- Cart ---
       function fillCart() {
+        const u = getCurrentUser && getCurrentUser();
         const testCart = {
           "Giant Lemon": { quantity: 3, price: 14.99 },
           "Lemon Lemonaid": { quantity: 2, price: 3.99 },
           "Quantum Lemon": { quantity: 1, price: 14.99 },
           "Invisible Lemon": { quantity: 4, price: 6.99 }
         };
-        localStorage.setItem('cart', JSON.stringify(testCart));
+        if (u)
+          localStorage.setItem('cart__' + u, JSON.stringify(testCart));
+        else
+          localStorage.setItem('cart', JSON.stringify(testCart));
         if (typeof updateCartCount === "function") updateCartCount();
         document.getElementById('debug-cart-table').innerHTML = '<b>Cart filled with test data.</b>';
       }
       function clearCartDebug() {
-        localStorage.removeItem('cart');
+        const u = getCurrentUser && getCurrentUser();
+        if (u)
+          localStorage.removeItem('cart__' + u);
+        else
+          localStorage.removeItem('cart');
         if (typeof updateCartCount === "function") updateCartCount();
         document.getElementById('debug-cart-table').innerHTML = '<b>Cart cleared.</b>';
       }
       function showCartDebug() {
+        const u = getCurrentUser && getCurrentUser();
         let cart;
-        try { cart = JSON.parse(localStorage.getItem('cart')) || {}; } catch { cart = {}; }
+        try { cart = JSON.parse(localStorage.getItem(u ? 'cart__' + u : 'cart')) || {}; } catch { cart = {}; }
         if (!cart || Object.keys(cart).length === 0) {
           document.getElementById('debug-cart-table').innerHTML = 'Cart is empty.';
           return;
@@ -194,23 +275,32 @@
         document.getElementById('debug-cart-table').innerHTML = html;
       }
 
-      // Rewards
+      // --- Rewards ---
       function giveTestRewards() {
+        const u = getCurrentUser && getCurrentUser();
         const rewards = [
           { code: 'SOUR5', value: 5, min: 20, label: '$5 Off Reward' },
           { code: 'ZEST10', value: 10, min: 40, label: '$10 Off Reward' },
           { code: 'LEMONANIA15', value: 15, min: 60, label: '$15 Off Reward' }
         ];
-        localStorage.setItem('myRewards', JSON.stringify(rewards));
+        if (u)
+          localStorage.setItem('myRewards__' + u, JSON.stringify(rewards));
+        else
+          localStorage.setItem('myRewards', JSON.stringify(rewards));
         document.getElementById('debug-rewards-table').innerHTML = '<b>Test rewards granted.</b>';
       }
       function clearRewards() {
-        localStorage.removeItem('myRewards');
+        const u = getCurrentUser && getCurrentUser();
+        if (u)
+          localStorage.removeItem('myRewards__' + u);
+        else
+          localStorage.removeItem('myRewards');
         document.getElementById('debug-rewards-table').innerHTML = '<b>All rewards cleared.</b>';
       }
       function showRewards() {
+        const u = getCurrentUser && getCurrentUser();
         let rewards;
-        try { rewards = JSON.parse(localStorage.getItem('myRewards')) || []; } catch { rewards = []; }
+        try { rewards = JSON.parse(localStorage.getItem(u ? 'myRewards__' + u : 'myRewards')) || []; } catch { rewards = []; }
         if (!rewards.length) {
           document.getElementById('debug-rewards-table').innerHTML = 'No rewards found.';
           return;
@@ -223,7 +313,7 @@
         document.getElementById('debug-rewards-table').innerHTML = html;
       }
 
-      // Coupons
+      // --- Coupons ---
       function setTestCoupon(code) {
         const codeElem = document.getElementById('coupon');
         if (codeElem) codeElem.value = code;
@@ -235,14 +325,19 @@
         document.getElementById('debugStatus-coupon').innerText = 'Coupon cleared (if supported by page).';
       }
 
-      // Used Rewards
+      // --- Used Rewards ---
       function clearUsedRewards() {
-        localStorage.removeItem('usedRewards');
+        const u = getCurrentUser && getCurrentUser();
+        if (u)
+          localStorage.removeItem('usedRewards__' + u);
+        else
+          localStorage.removeItem('usedRewards');
         document.getElementById('debug-used-rewards-table').innerHTML = '<b>All used rewards cleared.</b>';
       }
       function showUsedRewards() {
+        const u = getCurrentUser && getCurrentUser();
         let used;
-        try { used = JSON.parse(localStorage.getItem('usedRewards')) || []; } catch { used = []; }
+        try { used = JSON.parse(localStorage.getItem(u ? 'usedRewards__' + u : 'usedRewards')) || []; } catch { used = []; }
         if (!used.length) {
           document.getElementById('debug-used-rewards-table').innerHTML = 'No used rewards found.';
           return;
@@ -255,7 +350,7 @@
         document.getElementById('debug-used-rewards-table').innerHTML = html;
       }
 
-      // Show all localStorage
+      // --- Show all localStorage ---
       function showAllLocalStorage() {
         let html = '<table class="debug-table"><tr><th>Key</th><th>Value</th></tr>';
         for (let i = 0; i < localStorage.length; ++i) {
@@ -267,6 +362,11 @@
         html += '</table>';
         document.getElementById('debug-all-storage').innerHTML = html;
       }
+
+      document.addEventListener("DOMContentLoaded", function() {
+        showDebugUserStatus();
+        showUserDebug();
+      });
     </script>
   </body>
 </html>

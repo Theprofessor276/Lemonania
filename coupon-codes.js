@@ -10,7 +10,8 @@
 //   items (array of item names, optional: coupon applies only to these items; default is all)
 // }
 
-const COUPON_CODES = {
+// IMPORTANT: Make sure this is a global property!
+window.COUPON_CODES = {
   "SUMMER5": {
     discount: 5,
     min: 25,
@@ -35,11 +36,11 @@ const COUPON_CODES = {
     expires: Date.UTC(2027, 0, 1), // January 1, 2027
     items: ["Lemon Lemonaid"] // Only applies to these items
   },
-    "TEST": {
+  "TEST": {
     discount: 100,
     min: 1,
     incompatibleWith: [],
-        label: "$10 off drinks (DRINKS10, min $15, on beverages only)",
+    label: "$10 off drinks (DRINKS10, min $15, on beverages only)",
     expires: Date.UTC(2023, 0, 1), // January 1, 2024
     items: undefined // Only applies to these items
   }
@@ -50,8 +51,8 @@ const COUPON_CODES = {
 function getCouponByCode(code) {
   if (!code) return null;
   const up = code.trim().toUpperCase();
-  if (COUPON_CODES.hasOwnProperty(up)) {
-    return { ...COUPON_CODES[up], code: up };
+  if (window.COUPON_CODES.hasOwnProperty(up)) {
+    return { ...window.COUPON_CODES[up], code: up };
   }
   return null;
 }

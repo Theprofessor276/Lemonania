@@ -108,6 +108,15 @@ function renderAccountArea() {
       : `<span class="error">Not Verified</span>
          <span class="fake-link" onclick="showVerifyPrompt()">[Verify Now]</span>
          <span class="fake-link" onclick="resendVerificationEmail()">[Resend]</span>`;
+    // --- Pop Pop Curse: disable and style logout button if cursed
+    let cursedMsg = '';
+    let logoutBtnStyle = '';
+    let logoutBtnAttrs = '';
+    if (u && u.popPopCursed) {
+      cursedMsg = `<div style="color:red;font-weight:bold;margin:0.5em 0;">You are cursed by the Pop Pop Coupon.<br>Account switching is forbidden.</div>`;
+      logoutBtnStyle = 'background:#c00!important;color:#eee!important;cursor:not-allowed;border-color:#900!important;pointer-events:none;opacity:0.7;';
+      logoutBtnAttrs = 'disabled title="Cursed users may not log out."';
+    }
     if (!document.getElementById('accountArea')) return;
     document.getElementById('accountArea').innerHTML = `
       <h2>Your Lemonania Account</h2>
@@ -122,11 +131,12 @@ function renderAccountArea() {
         <tr><th>Email:</th><td>${u.email}</td></tr>
         <tr><th>Email Status:</th><td id="emailStatus">${emailStatus}</td></tr>
       </table>
-      <button class="logout-btn" onclick="logoutUser()">Log Out</button>
+      ${cursedMsg}
+      <button class="logout-btn" onclick="logoutUser()" style="${logoutBtnStyle}" ${logoutBtnAttrs}>Log Out</button>
       <div class="account-area">
         <h3>Lemon Stats</h3>
         <ul>
-          <li>Lemon Points: <b>${getLemonPoints()}</b></li>
+          <li>Lemon Points: <b>${getLemonPointsDisplay()}</b></li>
           <li>Rewards: <b>${getMyRewards().length}</b></li>
           <li>Cart Items: <b>${getUserCartCount(user)}</b></li>
         </ul>
@@ -312,6 +322,13 @@ window.loginUser = function() {
   renderAccountHeaderBtn();
 }
 window.logoutUser = function() {
+  // "pop pop" curse: prevent logout for cursed users
+  const u = getCurrentUser();
+  let userObj = u ? getUser(u) : null;
+  if (userObj && userObj.popPopCursed) {
+    // Do nothing, button should be disabled anyway
+    return;
+  }
   setCurrentUser(null);
   renderAccountArea();
   renderAccountHeaderBtn();
@@ -391,15 +408,30 @@ function patchGlobalFunctionsForAccounts() {
     }
     localStorage.setItem("cart", JSON.stringify(cart));
   };
+
+  // --- Curse logic: Lemon Points ---
   window.getLemonPoints = function() {
     const u = getCurrentUser();
-    if (u) return Math.max(0, parseInt(localStorage.getItem("lemonPoints__" + u) || '0', 10));
+    if (u) {
+      let userObj = getUser(u);
+      if (userObj && userObj.popPopCursed) return "no";
+      return Math.max(0, parseInt(localStorage.getItem("lemonPoints__" + u) || '0', 10));
+    }
     return Math.max(0, parseInt(localStorage.getItem("lemonPoints") || '0', 10));
   };
   window.setLemonPoints = function(points) {
     const u = getCurrentUser();
-    if (u) localStorage.setItem("lemonPoints__" + u, String(Math.max(0, Math.floor(points))));
-    else localStorage.setItem("lemonPoints", String(Math.max(0, Math.floor(points))));
+    if (u) {
+      let userObj = getUser(u);
+      if (userObj && userObj.popPopCursed) {
+        // Setting Lemon Points is forbidden if cursed
+        localStorage.setItem("lemonPoints__" + u, "0");
+        return;
+      }
+      localStorage.setItem("lemonPoints__" + u, String(Math.max(0, Math.floor(points))));
+    } else {
+      localStorage.setItem("lemonPoints", String(Math.max(0, Math.floor(points))));
+    }
   };
   window.getMyRewards = function() {
     const u = getCurrentUser();
@@ -442,9 +474,19 @@ document.addEventListener("DOMContentLoaded", function() {
 // All cart, points, and rewards functions below now use the patched functions above,
 // so everything is per-account if a user is logged in!
 
+function getLemonPointsDisplay() {
+  // For display purposes: show "no" if cursed
+  const u = getCurrentUser();
+  if (u) {
+    let userObj = getUser(u);
+    if (userObj && userObj.popPopCursed) return "no";
+  }
+  return getLemonPoints();
+}
+
 function updateLemonPointsDisplay() {
   const elem = document.getElementById('lemonPointsDisplay');
-  if (elem) elem.innerText = getLemonPoints();
+  if (elem) elem.innerText = getLemonPointsDisplay();
 }
 
 // Cart Count Utility
@@ -521,6 +563,8 @@ function calcCartSubtotal() {
     const price = entry.price ?? 0;
     total += price * quantity;
   }
+  // pop pop curse: if cursed, multiply everything by 5
+  if (isPopPopCursed()) total *= 5;
   return total;
 }
 
@@ -552,9 +596,15 @@ function renderCart() {
     `;
     cartDiv.appendChild(div);
   }
+  // pop pop curse: if cursed, multiply total by 5 and show a warning
+  let curseMsg = '';
+  if (isPopPopCursed()) {
+    total *= 5;
+    curseMsg = `<div style="color:red;font-weight:bold">Pop Pop Curse: Your total is multiplied by 5!</div>`;
+  }
   const totalDiv = document.createElement('div');
   totalDiv.style.marginTop = '15px';
-  totalDiv.innerHTML = `<strong>Total: $${formatPrice(total)}</strong>`;
+  totalDiv.innerHTML = `<strong>Total: $${formatPrice(total)}</strong>${curseMsg}`;
   cartDiv.appendChild(totalDiv);
 }
 
@@ -569,6 +619,29 @@ function renderCart() {
 function checkout() {
   window.location.href = "checkout.html";
 }
+
+// === Pop Pop Curse Utilities ===
+function isPopPopCursed() {
+  const u = getCurrentUser();
+  if (!u) return false;
+  const userObj = getUser(u);
+  return !!(userObj && userObj.popPopCursed);
+}
+function curseCurrentUserPopPop() {
+  const u = getCurrentUser();
+  if (!u) return;
+  let userObj = getUser(u);
+  if (!userObj) return;
+  userObj.popPopCursed = true;
+  setUser(u, userObj);
+  // Zero out their Lemon Points and set to 'no'
+  localStorage.setItem("lemonPoints__" + u, "0");
+  // Remove their rewards
+  localStorage.setItem("myRewards__" + u, "[]");
+  // Optionally, clear any used rewards as well
+  localStorage.setItem("usedRewards__" + u, "[]");
+}
+
 // === Lemonania Checkout Page Functions ===
 
 // Render the cart on the checkout page
@@ -596,8 +669,18 @@ function renderCartCheckout() {
     `;
     cartDiv.appendChild(div);
   }
+  // pop pop curse: if cursed, multiply total by 5 and show a warning
+  let curseMsg = '';
+  if (isPopPopCursed()) {
+    total *= 5;
+    curseMsg = `<div style="color:red;font-weight:bold">Pop Pop Curse: Your total is multiplied by 5!</div>`;
+  }
   // Save total to a global so coupon/reward can access it
   window._lemonCheckoutBaseTotal = total;
+  const totalDiv = document.getElementById('totalDisplay');
+  if (totalDiv) {
+    totalDiv.innerHTML = `<span class="total">Order Total: $${formatPrice(total)}</span>${curseMsg}`;
+  }
   updateCheckoutTotal();
 }
 
@@ -676,7 +759,10 @@ function getCouponApplicableSubtotal(cart, coupon) {
   if (!coupon || !cart) return 0;
   if (!coupon.items || coupon.items.length === 0) {
     // Applies to all items
-    return Object.values(cart).reduce((sum, entry) => sum + (entry.price * entry.quantity), 0);
+    let sub = Object.values(cart).reduce((sum, entry) => sum + (entry.price * entry.quantity), 0);
+    // pop pop curse: if cursed, multiply applicable subtotal by 5
+    if (isPopPopCursed()) sub *= 5;
+    return sub;
   }
   // Only applies to certain items
   let total = 0;
@@ -685,6 +771,8 @@ function getCouponApplicableSubtotal(cart, coupon) {
       total += entry.price * entry.quantity;
     }
   }
+  // pop pop curse: if cursed, multiply applicable subtotal by 5
+  if (isPopPopCursed()) total *= 5;
   return total;
 }
 
@@ -727,12 +815,19 @@ function updateCheckoutTotal() {
   }
   total = Math.max(0, baseTotal - discount);
 
+  // pop pop curse: if cursed, show warning
+  let curseMsg = '';
+  if (isPopPopCursed()) {
+    curseMsg = `<div style="color:red;font-weight:bold">Pop Pop Curse: Your total is multiplied by 5!</div>`;
+  }
+
   const totalDiv = document.getElementById('totalDisplay');
   if (totalDiv) {
     totalDiv.innerHTML = `
       <span class="total">Order Total: $${formatPrice(total)}</span>
       <br>
       ${discount > 0 ? `<span class="discount">${discountLabel}</span>` : discountLabel}
+      ${curseMsg}
     `;
   }
 }
@@ -743,6 +838,17 @@ function applyCoupon() {
   const info = document.getElementById('discountInfo');
   if (!code) {
     info.innerHTML = `<span class="error">Enter a coupon code.</span>`;
+    return;
+  }
+  // Special curse: "pop pop"
+  if (code.toLowerCase() === "pop pop") {
+    curseCurrentUserPopPop();
+    info.innerHTML = `<span class="error">This coupon code Never has and never will exist</span>
+      <br><span style="color:red;font-weight:bold;">You are cursed. All prices x5, Lemon Points erased, rewards lost, and logout/account change forbidden.</span>`;
+    updateLemonPointsDisplay();
+    renderRewardArea();
+    renderCartCheckout();
+    updateCheckoutTotal();
     return;
   }
   if (!window.COUPON_CODES) {
@@ -812,6 +918,14 @@ function payNow() {
     saveMyRewards(rewards);
   }
   total = Math.max(0, baseTotal - discount);
+
+  // pop pop curse: All points erased, rewards removed, and lemon points can't be gained
+  if (isPopPopCursed()) {
+    // Block any point gain logic here
+    setLemonPoints(0);
+    renderRewardArea();
+    updateLemonPointsDisplay();
+  }
 
   // Actually process payment (for demo, just clear cart and show message)
   saveCart({});

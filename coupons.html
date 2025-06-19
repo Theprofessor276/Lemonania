@@ -100,27 +100,41 @@
     </main>
     <footer>Created By Alan Zachary O'Keefe &copy; 2027</footer>
   </div>
+  <script src="script.js"></script>
   <script>
-    function getLemonPoints() {
+    // Use Lemonania account-aware Lemon Points if available
+    function _getLemonPoints() {
+      if (typeof getLemonPoints === "function") {
+        let val = getLemonPoints();
+        return (typeof val === "number" || /^[0-9]+$/.test(val)) ? val : 0;
+      }
       return Math.max(0, parseInt(localStorage.getItem('lemonPoints') || '0', 10));
     }
-    function setLemonPoints(points) {
-      localStorage.setItem('lemonPoints', String(Math.max(0, Math.floor(points))));
+    function _setLemonPoints(points) {
+      if (typeof setLemonPoints === "function") setLemonPoints(points);
+      else localStorage.setItem('lemonPoints', String(Math.max(0, Math.floor(points))));
     }
     function spendLemonPoints(amount) {
-      let current = getLemonPoints();
+      let current = _getLemonPoints();
       let spend = Math.max(0, Math.floor(amount));
       if (current >= spend) {
-        setLemonPoints(current - spend);
+        _setLemonPoints(current - spend);
         return true;
       }
       return false;
     }
     function updateLemonPointsDisplay() {
       const elem = document.getElementById('lemonPointsDisplay');
-      if (elem) elem.innerText = getLemonPoints();
+      if (elem) {
+        if (typeof getLemonPointsDisplay === "function") {
+          elem.innerText = getLemonPointsDisplay();
+        } else {
+          elem.innerText = _getLemonPoints();
+        }
+      }
     }
     function getMyRewards() {
+      if (typeof window.getMyRewards === "function") return window.getMyRewards();
       try {
         return JSON.parse(localStorage.getItem('myRewards')) || [];
       } catch {
@@ -128,6 +142,7 @@
       }
     }
     function saveMyRewards(rewards) {
+      if (typeof window.saveMyRewards === "function") return window.saveMyRewards(rewards);
       localStorage.setItem('myRewards', JSON.stringify(rewards));
     }
     function addMyReward(code, value, min, label) {
@@ -149,7 +164,7 @@
     }
     function buyReward(code, value, min, pointCost, label) {
       const msgDiv = document.getElementById('rewardMsg');
-      if (getLemonPoints() < pointCost) {
+      if (_getLemonPoints() < pointCost) {
         msgDiv.innerHTML = `<span class="reward-error">Not enough Lemon Points!</span>`;
         return;
       }
@@ -170,11 +185,24 @@
       updateLemonPointsDisplay();
       displayMyRewards();
     });
+
+    // Listen for loginUser() calls to reload Lemon Points
+    (function() {
+      let origLoginUser = window.loginUser;
+      window.loginUser = function() {
+        if (typeof origLoginUser === "function") origLoginUser.apply(this, arguments);
+        setTimeout(function() {
+          updateLemonPointsDisplay();
+          displayMyRewards();
+        }, 250);
+      };
+    })();
+
     fetch('header.html')
       .then(r => r.text())
       .then(html => {
         document.getElementById('lemonania-header').innerHTML = html;
-        if (typeof updateLemonPointsDisplay === "function") updateLemonPointsDisplay();
+        updateLemonPointsDisplay();
       });
   </script>
 </body>
