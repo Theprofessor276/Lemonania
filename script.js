@@ -1,4 +1,4 @@
-// Robust Lemonania shop.js: Cart, Lemon Points, and click sounds
+// Robust Lemonania shop.js: Cart, Lemon Points, Rewards, Coupons and click sounds
 
 // --- Lemon Points Utilities ---
 function getLemonPoints() {
@@ -34,6 +34,17 @@ function loadCart() {
 }
 function saveCart(cart) {
   localStorage.setItem('cart', JSON.stringify(cart));
+}
+function calcCartSubtotal() {
+  const cart = loadCart();
+  let total = 0;
+  for (const item in cart) {
+    const entry = cart[item];
+    const quantity = entry.quantity ?? 0;
+    const price = entry.price ?? 0;
+    total += price * quantity;
+  }
+  return total;
 }
 
 // --- Cart Count Utility ---
@@ -102,6 +113,32 @@ function formatPrice(num) {
   return (typeof num === 'number' && !isNaN(num)) ? num.toFixed(2) : '0.00';
 }
 
+// --- Lemonania Reward helpers ---
+function getMyRewards() {
+  try {
+    return JSON.parse(localStorage.getItem('myRewards')) || [];
+  } catch {
+    return [];
+  }
+}
+function saveMyRewards(rewards) {
+  localStorage.setItem('myRewards', JSON.stringify(rewards));
+}
+function removeMyReward(index) {
+  const rewards = getMyRewards();
+  if (index >= 0 && index < rewards.length) {
+    rewards.splice(index, 1);
+    saveMyRewards(rewards);
+  }
+}
+
+// --- State for checkout ---
+let appliedRewardIndex = null;
+let appliedReward = null;
+let appliedCouponCode = null;
+let appliedDiscount = 0;
+let appliedMin = 0;
+
 // --- Render cart for checkout page ---
 function renderCartCheckout() {
   const cart = loadCart();
@@ -109,46 +146,145 @@ function renderCartCheckout() {
   if (!cartDiv) return;
   cartDiv.innerHTML = '';
   let total = 0;
-
   if (Object.keys(cart).length === 0) {
     cartDiv.innerText = "Your cart is empty.";
-    updateLemonPointsDisplay();
     updateTotalDisplay(0);
     return;
   }
-
   for (const item in cart) {
     const entry = cart[item];
     const quantity = entry.quantity ?? 0;
     const price = entry.price ?? 0;
     const subtotal = price * quantity;
     total += subtotal;
-
     const div = document.createElement('div');
     div.className = 'item';
-    div.innerHTML = `
-      <span>${item} — $${formatPrice(price)} × ${quantity} = $${formatPrice(subtotal)}</span>
-    `;
+    div.innerHTML = `<span>${item} — $${price.toFixed(2)} × ${quantity} = $${subtotal.toFixed(2)}</span>`;
     cartDiv.appendChild(div);
   }
-  updateLemonPointsDisplay();
   updateTotalDisplay(total);
 }
 
-// --- Update total display with Lemon Points logic ---
-let lemonPointsApplied = 0;
-function updateTotalDisplay(subtotal) {
-  let discount = lemonPointsApplied * 5;
-  let total = Math.max(0, subtotal - discount);
-  let info = `Total: $${formatPrice(total)}`;
-  if (lemonPointsApplied > 0) {
-    info += ` <span style="color:green;">(${lemonPointsApplied * 100} Lemon Points applied, -$${discount.toFixed(2)})</span>`;
+// --- Render Lemonania rewards to select/use ---
+function renderRewardArea() {
+  const area = document.getElementById('rewardArea');
+  if (!area) return;
+  const rewards = getMyRewards();
+  if (!rewards.length) {
+    area.innerHTML = `<div class="reward-select"><b>No Lemonania rewards available.</b><br>
+      <a href="coupons.html">Redeem Lemon Points for Rewards</a></div>`;
+    return;
   }
-  const totalElem = document.getElementById('totalDisplay');
-  if (totalElem) totalElem.innerHTML = info;
+  let subtotal = calcCartSubtotal();
+  let options = rewards.map((r, i) => {
+    let disabled = subtotal < r.min ? "disabled" : "";
+    let checked = appliedRewardIndex === i ? "checked" : "";
+    return `<label class="reward-option">
+      <input type="radio" name="reward" value="${i}" ${checked} ${disabled} onchange="selectReward(${i})">
+      ${r.label || r.code}: $${r.value} off (min $${r.min}) ${subtotal < r.min ? '<span style="color:#c00;">(need $' + r.min + ' in cart)</span>' : ''}
+    </label>`;
+  }).join('');
+  area.innerHTML = `<div class="reward-select"><b>Use a Lemonania Reward:</b><br>${options}
+    <button onclick="removeSelectedReward()" style="margin-top:0.8em;">Remove Reward</button></div>`;
 }
 
-// --- Render Cart (for cart page) ---
+// --- Handle reward select/deselect ---
+function selectReward(idx) {
+  const rewards = getMyRewards();
+  let subtotal = calcCartSubtotal();
+  if (rewards[idx] && subtotal >= rewards[idx].min) {
+    appliedRewardIndex = idx;
+    appliedReward = rewards[idx];
+    appliedCouponCode = null;
+    appliedDiscount = appliedReward.value;
+    appliedMin = appliedReward.min;
+  } else {
+    // Don't apply if not eligible
+    appliedRewardIndex = null;
+    appliedReward = null;
+    appliedDiscount = 0;
+    appliedMin = 0;
+  }
+  renderRewardArea();
+  updateTotalDisplay(calcCartSubtotal());
+  const discountInfoElem = document.getElementById('discountInfo');
+  if (discountInfoElem) discountInfoElem.innerHTML = '';
+  const couponElem = document.getElementById('coupon');
+  if (couponElem) couponElem.value = '';
+}
+function removeSelectedReward() {
+  appliedRewardIndex = null;
+  appliedReward = null;
+  appliedDiscount = 0;
+  appliedMin = 0;
+  renderRewardArea();
+  updateTotalDisplay(calcCartSubtotal());
+}
+
+// --- Coupon code logic ---
+function applyCoupon() {
+  const codeElem = document.getElementById('coupon');
+  const code = codeElem ? codeElem.value.trim().toUpperCase() : '';
+  const subtotal = calcCartSubtotal();
+  if (appliedRewardIndex !== null) {
+    const discountInfoElem = document.getElementById('discountInfo');
+    if (discountInfoElem)
+      discountInfoElem.innerHTML = '<span class="error">Remove Lemonania reward to use a coupon code.</span>';
+    return;
+  }
+  // Example coupons
+  if (code === "SUMMER5" && subtotal >= 25) {
+    appliedCouponCode = code;
+    appliedDiscount = 5;
+    appliedMin = 25;
+    const discountInfoElem = document.getElementById('discountInfo');
+    if (discountInfoElem)
+      discountInfoElem.innerHTML = '<span class="discount">SUMMER5 applied: $5 off!</span>';
+  } else if (code === "BIGLEMON" && subtotal >= 50) {
+    appliedCouponCode = code;
+    appliedDiscount = 12;
+    appliedMin = 50;
+    const discountInfoElem = document.getElementById('discountInfo');
+    if (discountInfoElem)
+      discountInfoElem.innerHTML = '<span class="discount">BIGLEMON applied: $12 off!</span>';
+  } else {
+    appliedCouponCode = null;
+    appliedDiscount = 0;
+    appliedMin = 0;
+    const discountInfoElem = document.getElementById('discountInfo');
+    if (discountInfoElem)
+      discountInfoElem.innerHTML = '<span class="error">Invalid code or not enough in cart!</span>';
+  }
+  updateTotalDisplay(subtotal);
+}
+function cancelCoupon() {
+  appliedCouponCode = null;
+  appliedDiscount = 0;
+  appliedMin = 0;
+  const couponElem = document.getElementById('coupon');
+  if (couponElem) couponElem.value = '';
+  const discountInfoElem = document.getElementById('discountInfo');
+  if (discountInfoElem) discountInfoElem.innerHTML = '';
+  updateTotalDisplay(calcCartSubtotal());
+}
+
+// --- Update displayed total with reward/coupon ---
+function updateTotalDisplay(subtotal) {
+  let discount = (typeof appliedDiscount === "number" ? appliedDiscount : 0);
+  let min = appliedMin || 0;
+  let original = subtotal;
+  let info = "";
+  let finalTotal = subtotal;
+  if (discount > 0 && subtotal >= min) {
+    finalTotal = Math.max(0, subtotal - discount);
+    info += ` <span class="discount">( -$${discount.toFixed(2)} )</span>`;
+  }
+  const totalElem = document.getElementById("totalDisplay");
+  if (totalElem)
+    totalElem.innerHTML = `Total: $${finalTotal.toFixed(2)}${info}`;
+}
+
+// --- Checkout (for cart page) ---
 function renderCart() {
   const cart = loadCart();
   const cartDiv = document.getElementById('cartItems');
@@ -185,13 +321,14 @@ function renderCart() {
   cartDiv.appendChild(totalDiv);
 }
 
-// --- Checkout (for cart page) ---
+// --- Checkout (from cart page) ---
 function checkout() {
   playClick();
   window.location.href = "checkout.html";
 }
 
-// --- Lemon Points: Apply at checkout ---
+// --- Lemon Points: Apply at checkout (for cart-only flow, not rewards/coupons) ---
+let lemonPointsApplied = 0;
 function applyLemonPoints() {
   const subtotal = calcCartSubtotal();
   const maxUsableChunks = Math.min(Math.floor(getLemonPoints() / 100), Math.floor(subtotal / 5));
@@ -214,50 +351,67 @@ function cancelLemonPoints() {
   if (infoElem) infoElem.innerHTML = '';
 }
 
-// --- Cart subtotal helper ---
-function calcCartSubtotal() {
-  const cart = loadCart();
-  let total = 0;
-  for (const item in cart) {
-    const entry = cart[item];
-    const quantity = entry.quantity ?? 0;
-    const price = entry.price ?? 0;
-    total += price * quantity;
-  }
-  return total;
-}
-
-// --- Pay Now (checkout) ---
+// --- Pay Now (checkout) -- now handles rewards/coupons/points
 function payNow() {
-  playClick();
+  playClick && playClick();
   const subtotal = calcCartSubtotal();
-  let discount = lemonPointsApplied * 5;
+  let discount = 0;
+  let usedReward = false;
+
+  // Reward/coupon logic for checkout.html
+  if (typeof appliedRewardIndex !== "undefined" && appliedRewardIndex !== null && typeof getMyRewards === "function") {
+    // Using reward
+    const rewards = getMyRewards();
+    const reward = rewards && rewards[appliedRewardIndex];
+    if (reward && subtotal >= (reward.min || 0)) {
+      discount = reward.value;
+      removeMyReward(appliedRewardIndex);
+      usedReward = true;
+      appliedRewardIndex = null;
+      appliedReward = null;
+    } else if (reward && subtotal < (reward.min || 0)) {
+      alert("You do not have enough in your cart for this reward.");
+      return;
+    }
+  } else if (typeof appliedCouponCode !== "undefined" && appliedCouponCode) {
+    // Using coupon
+    discount = appliedDiscount || 0;
+    appliedCouponCode = null;
+    appliedDiscount = 0;
+    appliedMin = 0;
+  } else if (typeof lemonPointsApplied !== "undefined" && lemonPointsApplied > 0) {
+    // Lemon Points used in script.js context
+    discount = lemonPointsApplied * 5;
+    spendLemonPoints(lemonPointsApplied * 100);
+    lemonPointsApplied = 0;
+  }
+
+  // Calculate final total
   let total = Math.max(0, subtotal - discount);
 
   // Award Lemon Points: 1 per $1 spent (before discount)
   const pointsEarned = Math.floor(subtotal);
   addLemonPoints(pointsEarned);
 
-  // Spend Lemon Points if used
-  if (lemonPointsApplied > 0) {
-    spendLemonPoints(lemonPointsApplied * 100);
-  }
+  // Reset states/coupon/reward
+  appliedCouponCode = null;
+  appliedDiscount = 0;
+  appliedMin = 0;
 
-  // Clear cart, reset points used
+  // Clear cart
   localStorage.removeItem('cart');
-  lemonPointsApplied = 0;
-  updateCartCount();
-  updateLemonPointsDisplay();
+  updateCartCount && updateCartCount();
+  updateLemonPointsDisplay && updateLemonPointsDisplay();
 
   alert(`Thank you for your order!\nYou earned ${pointsEarned} Lemon Points! 🍋`);
   window.location.href = "index.html";
 }
 
 // --- Coupon code stubs (not used with Lemon Points for now, but preserved for extensibility) ---
-function applyCoupon() {
+function applyCouponStub() {
   alert("Coupon codes are not yet supported. Try Lemon Points!");
 }
-function cancelCoupon() {}
+function cancelCouponStub() {}
 
 // --- Click sound (optional, for fun) ---
 const clickPaths = [
