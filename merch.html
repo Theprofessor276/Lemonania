@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+  <head>
     <link rel="preload" as="script" href="script.js">
     <link rel="stylesheet" href="style.css">
     <meta charset="utf-8">
@@ -9,21 +10,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Lemon&family=Lobster&display=swap" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="Lemon.png">
-    <style>
-      .cart {
-        position: fixed; top: 20px; right: 20px; font-size: 24px; z-index: 100;
-      }
-      .cart-icon { position: relative; cursor: pointer; }
-      .cart-count {
-        position: absolute; top: -10px; right: -10px;
-        background: red; color: white;
-        border-radius: 50%; padding: 2px 6px; font-size: 14px;
-      }
-      .order-btn {
-        background: #ffecb3; border: 1px solid #ffd54f; padding: 6px 10px;
-        border-radius: 4px; cursor: pointer; margin-top: 6px; display: inline-block;
-      }
-    </style>
   </head>
   <body>
     <div class="cart" onclick="goToCart()">
@@ -33,6 +19,9 @@
       </div>
     </div>
     <div id="boc">
+      <div style="float:right; font-size:1.1em; margin:-0.5em 0 1em 0;">
+        🍋 Lemon Points: <span id="lemonPointsDisplay">0</span>
+      </div>
       <header>
         <img src="banner.png" title="Lemonania banner" alt="Lemonania banner" style="width:100%">
       </header>
@@ -76,14 +65,18 @@
         <section class="s4">
           <h2>Drinkware</h2>
           <ul class="dropdown">
-            <li>Lemon Noir Mug<br>- $12.99</li>
-            <button class="order-btn" onclick="addToCart('Lemon Noir Mug', 12.99)">Add to Cart</button>
-            <li>Lemon Singularity Travel Cup<br>- $18.99</li>
-            <button class="order-btn" onclick="addToCart('Lemon Singularity Travel Cup', 18.99)">Add to Cart</button>
-            <li>"Ask Me About My Lemon Cult" Water Bottle<br>- $15.99</li>
-            <button class="order-btn" onclick="addToCart('Ask Me About My Lemon Cult Water Bottle', 15.99)">Add to Cart</button>
-            <li>Invisible Lemon Glass<br>- $8.99</li>
-            <button class="order-btn" onclick="addToCart('Invisible Lemon Glass', 8.99)">Add to Cart</button>
+            <li>Lemon Noir Mug<br>- $12.99
+              <button class="order-btn" onclick="addToCart('Lemon Noir Mug', 12.99)">Add to Cart</button>
+            </li>
+            <li>Lemon Singularity Travel Cup<br>- $18.99
+              <button class="order-btn" onclick="addToCart('Lemon Singularity Travel Cup', 18.99)">Add to Cart</button>
+            </li>
+            <li>"Ask Me About My Lemon Cult" Water Bottle<br>- $15.99
+              <button class="order-btn" onclick="addToCart('Ask Me About My Lemon Cult Water Bottle', 15.99)">Add to Cart</button>
+            </li>
+            <li>Invisible Lemon Glass<br>- $8.99
+              <button class="order-btn" onclick="addToCart('Invisible Lemon Glass', 8.99)">Add to Cart</button>
+            </li>
           </ul>
         </section>
 
@@ -116,15 +109,15 @@
             Lemon of the Month Subscription Box<br>- $24.99
             <button class="order-btn" onclick="addToCart('Lemon of the Month Subscription Box', 24.99)">Add to Cart</button>
           </li>
-
+          <li>
             Reverse Lemon Plush<br>- $14.99
             <button class="order-btn" onclick="addToCart('Reverse Lemon Plush', 14.99)">Add to Cart</button>
           </li>
-
+          <li>
             Forbidden Lemon Replica<br>- $19.99
             <button class="order-btn" onclick="addToCart('Forbidden Lemon Replica', 19.99)">Add to Cart</button>
           </li>
-
+          <li>
             Lemon Reality Distortion Goggles<br>- $22.99
             <button class="order-btn" onclick="addToCart('Lemon Reality Distortion Goggles', 22.99)">Add to Cart</button>
           </li>
@@ -134,11 +127,12 @@
       </div>
       <footer>Created By Alan Zachary O'Keefe &copy; 2027</footer>
     </div>
-       <script src="script.js"></script>
-       <script>
-document.addEventListener("DOMContentLoaded", function() {
-    updateCartCount();
-  });
-       </script>
+    <script src="script.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function() {
+        updateCartCount();
+        updateLemonPointsDisplay();
+      });
+    </script>
   </body>
 </html>

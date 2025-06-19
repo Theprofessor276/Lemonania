@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Lemonania Rewards</title>
+  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lemon&family=Lobster&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="Lemon.png">
+  <style>
+    .reward-btn {
+      background: #FFD700;
+      color: #282828;
+      border: 1px solid #ffd54f;
+      border-radius: 0.5em;
+      padding: 0.5em 1.2em;
+      font-family: 'Lemon', 'Lobster', Arial, sans-serif;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      font-weight: bold;
+      margin-top: 8px;
+      margin-bottom: 8px;
+    }
+    .reward-btn:disabled {
+      background: #eee;
+      color: #bbb;
+      cursor: not-allowed;
+    }
+    .reward-success {
+      color: #32CD32;
+      font-weight: bold;
+      margin-top: 1em;
+    }
+    .reward-error {
+      color: #c00;
+      font-weight: bold;
+      margin-top: 1em;
+    }
+    .reward-list {
+      font-size:1.08em;
+      margin-top:0.5em;
+    }
+    .reward-chip {
+      background:#FFFACD;
+      border:1px solid #FFD700;
+      padding:0.2em 0.6em;
+      border-radius:0.5em;
+      margin:0.25em;
+      display:inline-block;
+    }
+    @media (max-width: 700px) {
+      .reward-chip { font-size: 0.96em; }
+      .reward-list { font-size:0.99em; }
+    }
+  </style>
+</head>
+<body>
+  <div id="boc">
+    <header>
+      <img src="banner.png" title="Lemonania banner" alt="Lemonania banner" style="width:100%">
+    </header>
+    <div id="nav"></div>
+    <script>
+      fetch("nav.html")
+        .then(r => r.text())
+        .then(html => { document.getElementById("nav").innerHTML = html; });
+    </script>
+    <main>
+      <h1>Lemonania Rewards</h1>
+      <blockquote>
+        Exchange your Lemon Points for instant discounts! Redeemed rewards appear as selectable discounts during checkout. <b>Only one reward can be used per order.</b>
+      </blockquote>
+      <div class="box2">
+        <section class="s1">
+          <h2>Redeem Lemon Points</h2>
+          <ul>
+            <li>
+              <b>$5 Off Reward</b><br>
+              Take $5 off your order (min $20)<br>
+              Cost: <b>200 Lemon Points</b><br>
+              <button class="reward-btn" onclick="buyReward('SOUR5', 5, 20, 200, '$5 Off Reward')">Redeem</button>
+            </li>
+            <li>
+              <b>$10 Off Reward</b><br>
+              Take $10 off your order (min $40)<br>
+              Cost: <b>375 Lemon Points</b><br>
+              <button class="reward-btn" onclick="buyReward('ZEST10', 10, 40, 375, '$10 Off Reward')">Redeem</button>
+            </li>
+            <li>
+              <b>$15 Off Reward</b><br>
+              Take $15 off your order (min $60)<br>
+              Cost: <b>580 Lemon Points</b><br>
+              <button class="reward-btn" onclick="buyReward('LEMONANIA15', 15, 60, 580, '$15 Off Reward')">Redeem</button>
+            </li>
+          </ul>
+          <div id="rewardMsg" style="margin-top:1em;"></div>
+        </section>
+        <section class="s2">
+          <h2>Your Rewards</h2>
+          <div id="lemonPointsArea" style="font-size:1.13em; margin-bottom:0.5em;">
+            🍋 Lemon Points: <span id="lemonPointsDisplay">0</span>
+          </div>
+          <div id="myRewards" class="reward-list"></div>
+        </section>
+      </div>
+    </main>
+    <footer>Created By Alan Zachary O'Keefe &copy; 2027</footer>
+  </div>
+  <script>
+    // --- Lemon Points helpers ---
+    function getLemonPoints() {
+      return Math.max(0, parseInt(localStorage.getItem('lemonPoints') || '0', 10));
+    }
+    function setLemonPoints(points) {
+      localStorage.setItem('lemonPoints', String(Math.max(0, Math.floor(points))));
+    }
+    function spendLemonPoints(amount) {
+      let current = getLemonPoints();
+      let spend = Math.max(0, Math.floor(amount));
+      if (current >= spend) {
+        setLemonPoints(current - spend);
+        return true;
+      }
+      return false;
+    }
+    function updateLemonPointsDisplay() {
+      const elem = document.getElementById('lemonPointsDisplay');
+      if (elem) elem.innerText = getLemonPoints();
+    }
+
+    // --- Reward storage helpers ---
+    function getMyRewards() {
+      try {
+        return JSON.parse(localStorage.getItem('myRewards')) || [];
+      } catch {
+        return [];
+      }
+    }
+    function saveMyRewards(rewards) {
+      localStorage.setItem('myRewards', JSON.stringify(rewards));
+    }
+    function addMyReward(code, value, min, label) {
+      const rewards = getMyRewards();
+      rewards.push({ code, value, min, label });
+      saveMyRewards(rewards);
+    }
+    function displayMyRewards() {
+      const rewards = getMyRewards();
+      const out = document.getElementById('myRewards');
+      if (!out) return;
+      if (!rewards.length) {
+        out.textContent = "You have no Lemonania Rewards yet.";
+        return;
+      }
+      out.innerHTML = rewards.map(r =>
+        `<span class="reward-chip">${r.label || r.code}: $${r.value} off (min $${r.min})</span>`
+      ).join('');
+    }
+
+    // --- Reward buying logic ---
+    function buyReward(code, value, min, pointCost, label) {
+      const msgDiv = document.getElementById('rewardMsg');
+      if (getLemonPoints() < pointCost) {
+        msgDiv.innerHTML = `<span class="reward-error">Not enough Lemon Points!</span>`;
+        return;
+      }
+      if (getMyRewards().length >= 5) {
+        msgDiv.innerHTML = `<span class="reward-error">Max 5 unclaimed rewards at one time! Use some at checkout.</span>`;
+        return;
+      }
+      if (spendLemonPoints(pointCost)) {
+        addMyReward(code, value, min, label);
+        updateLemonPointsDisplay();
+        displayMyRewards();
+        msgDiv.innerHTML = `<span class="reward-success">Reward redeemed! Use it at checkout.</span>`;
+      } else {
+        msgDiv.innerHTML = `<span class="reward-error">Something went wrong. Try again!</span>`;
+      }
+    }
+
+    // --- Init ---
+    document.addEventListener("DOMContentLoaded", function() {
+      updateLemonPointsDisplay();
+      displayMyRewards();
+    });
+  </script>
+</body>
+</html>

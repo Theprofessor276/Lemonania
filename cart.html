@@ -1,77 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<link rel="stylesheet" href="style.css">
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Lemonania Menu</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Lemon&family=Lobster&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Lemonania Cart</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lemon&family=Lobster&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="Lemon.png">
-  <style>
-    body { font-family: sans-serif; padding: 30px; background: #fafafa; }
-    .back { margin-bottom: 20px; cursor: pointer; color: blue; text-decoration: underline; }
-    .item {
-      background: white;
-      padding: 10px;
-      margin: 10px 0;
-      border: 1px solid #ccc;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .item-buttons {
-      display: flex;
-      gap: 8px;
-    }
-    .btn {
-      padding: 5px 10px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 14px;
-    }
-    .decrease-btn {
-      background: orange;
-      color: white;
-    }
-    .clear-btn {
-      background: #888;
-      color: white;
-      margin-top: 20px;
-    }
-    .checkout-btn {
-      margin-top: 20px;
-      padding: 10px 20px;
-      font-size: 16px;
-      background: green;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-  </style>
 </head>
-<body style="background-image: url(background.jpg);">
-<div style="
-  background-color: #FFF8DC;
-  width:85%;
-  padding: 10px;
-  margin: auto;
-  color: #DAA520;
-  border-radius: 1%;
-  height: 85vh;">
-  <div class="back" onclick="goBack()">← Continue shopping</div>
-  <h2>Your Cart</h2>
-  <div id="cartItems"></div>
-  <button class="clear-btn btn" onclick="clearCart()">Clear Cart</button>
-  <button class="checkout-btn" onclick="checkout()">Checkout</button>
-</div>
+<body>
+  <div id="boc">
+    <div style="float:right; font-size:1.1em; margin:-0.5em 0 1em 0;">
+      🍋 Lemon Points: <span id="lemonPointsDisplay">0</span>
+    </div>
+    <div class="back" onclick="goBack()" style="margin-bottom: 20px; cursor: pointer; color: #32CD32; text-decoration: underline; font-family: 'Lobster', cursive;">← Continue shopping</div>
+    <h2>Your Cart</h2>
+    <div id="cartItems"></div>
+    <button class="clear-btn btn" onclick="clearCart()">Clear Cart</button>
+    <button class="checkout-btn" onclick="checkout()">Checkout</button>
+  </div>
   <script src="script.js"></script>
   <script>
-  document.addEventListener("DOMContentLoaded", function() {
-    renderCart();
-  });
-</script>
+    document.addEventListener("DOMContentLoaded", function() {
+      renderCart();
+      updateLemonPointsDisplay();
+    });
+  </script>
 </body>
 </html>
