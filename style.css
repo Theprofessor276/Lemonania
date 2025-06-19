@@ -235,6 +235,17 @@ li {
   background: #daaf13;
   color: #fff;
 }
+.btn.increase-btn {
+  background: #32CD32;
+  color: #fff;
+  font-weight: bold;
+  border: 0.1em solid #228c22;
+  padding: 0.2em 0.8em;
+}
+.btn.increase-btn:hover {
+  background: #228c22;
+  color: #fff;
+}
 .clear-btn {
   background: #fff2c7;
   color: #c08000;

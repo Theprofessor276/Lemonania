@@ -124,6 +124,18 @@ function decreaseItem(itemName) {
   }
 }
 
+// --- Increase Item in Cart (for cart page) ---
+function increaseItem(itemName) {
+  playClick();
+  const cart = loadCart();
+  if (cart[itemName]) {
+    cart[itemName].quantity += 1;
+    saveCart(cart);
+    if (typeof renderCart === "function") renderCart();
+    updateCartCount();
+  }
+}
+
 // --- Clear Cart (for cart page) ---
 function clearCart() {
   playClick();
@@ -376,6 +388,7 @@ function renderCart() {
       <span>${item} — $${formatPrice(price)} × ${quantity} = $${formatPrice(subtotal)}</span>
       <div class="item-buttons">
         <button class="btn decrease-btn" onclick="decreaseItem('${item}')">−</button>
+        <button class="btn increase-btn" onclick="increaseItem('${item}')">+</button>
       </div>
     `;
     cartDiv.appendChild(div);
