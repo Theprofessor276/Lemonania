@@ -1,7 +1,6 @@
 // Robust Lemonania shop.js: Cart, Lemon Points, and click sounds
 
 // --- Lemon Points Utilities ---
-// Always clamp to zero, never allow negative points!
 function getLemonPoints() {
   return Math.max(0, parseInt(localStorage.getItem('lemonPoints') || '0', 10));
 }
@@ -18,7 +17,6 @@ function spendLemonPoints(amount) {
     setLemonPoints(current - spend);
     return true;
   }
-  // Not enough points, do not allow
   return false;
 }
 function updateLemonPointsDisplay() {
@@ -49,7 +47,7 @@ function updateCartCount() {
   if (countElem) countElem.innerText = count;
 }
 
-// --- Add to Cart (for shop) ---
+// --- Add to Cart ---
 function addToCart(itemName, price) {
   const cart = loadCart();
   if (!cart[itemName]) {
@@ -242,7 +240,6 @@ function payNow() {
 
   // Spend Lemon Points if used
   if (lemonPointsApplied > 0) {
-    // Only spend if user has enough (should be true if applyLemonPoints is used!)
     spendLemonPoints(lemonPointsApplied * 100);
   }
 
@@ -260,9 +257,7 @@ function payNow() {
 function applyCoupon() {
   alert("Coupon codes are not yet supported. Try Lemon Points!");
 }
-function cancelCoupon() {
-  // No-op for now
-}
+function cancelCoupon() {}
 
 // --- Click sound (optional, for fun) ---
 const clickPaths = [
@@ -280,6 +275,27 @@ function playClick() {
   player.currentTime = 0;
   player.play();
 }
+
+// --- Used Rewards Management (for coupons.html and other pages) ---
+function getUsedRewards() {
+  try {
+    return JSON.parse(localStorage.getItem('usedRewards')) || [];
+  } catch {
+    return [];
+  }
+}
+function saveUsedRewards(used) {
+  localStorage.setItem('usedRewards', JSON.stringify(used));
+}
+function addUsedReward(reward) {
+  const used = getUsedRewards();
+  used.push({
+    ...reward,
+    usedAt: new Date().toISOString()
+  });
+  saveUsedRewards(used);
+}
+window.addUsedReward = addUsedReward;
 
 // --- On page load helpers for Lemon Points in header ---
 document.addEventListener("DOMContentLoaded", function() {

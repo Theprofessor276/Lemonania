@@ -109,6 +109,16 @@
     <footer>Created By Alan Zachary O'Keefe &copy; 2027</footer>
   </div>
   <script>
+    // Define incompatibility: By default, all coupons are incompatible with all others
+    // If you want to make some compatible, add them to the compatibleWith array
+    const couponIncompatibilities = {
+      SOUR5: ['ZEST10','LEMONANIA15'],
+      ZEST10: ['SOUR5','LEMONANIA15'],
+      LEMONANIA15: ['SOUR5','ZEST10'],
+      // Add more here if you add more coupons
+    };
+    // For future: If you want some to be compatible, remove from each other's lists.
+
     // --- Lemon Points helpers ---
     function getLemonPoints() {
       return Math.max(0, parseInt(localStorage.getItem('lemonPoints') || '0', 10));
@@ -143,7 +153,9 @@
     }
     function addMyReward(code, value, min, label) {
       const rewards = getMyRewards();
-      rewards.push({ code, value, min, label });
+      // Add incompatibleWith to each reward
+      const incompatibleWith = couponIncompatibilities[code] || [];
+      rewards.push({ code, value, min, label, incompatibleWith });
       saveMyRewards(rewards);
     }
     function displayMyRewards() {

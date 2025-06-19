@@ -15,18 +15,12 @@
       <header>
       <img src="banner.png" title="Lemonania banner" alt="Lemonania banner" style="width:100%">
       </header>
-      <nav>
-        <p>
-          <a href="menu.html" title="Menu" class="navbtn">View menu</a>
-        
-          <a href="aboutes.html" title="About us" class="navbtn">About us</a>
-        
-          <a href="index.html" title="Home" class="navbtn">Home</a>
-          
-          <a href="merch.html" title="Merch" class="navbtn">Merch</a>
-          <a href="eula.html" title="Eula" class="navbtn">Eula</a>
-        </p>
-      </nav>
+      <div id="nav"></div>
+      <script>
+        fetch("nav.html")
+          .then(r => r.text())
+          .then(html => { document.getElementById("nav").innerHTML = html; });
+      </script>
       <main>
         <h1>Social Media</h1>
         <p>Follow us on our social media platforms to stay updated with the latest news, promotions, and events at Lemonania!</p>
@@ -85,3 +79,4 @@
     updateCartCount(); // Run on page load
   </script>
   </body>
+</html>

@@ -9,17 +9,63 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Lemon&family=Lobster&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="Lemon.png">
+  <style>
+    /* Style to match the checkout look */
+    .cart-main {
+      border: 0.09em solid #000;
+      background: #fffbe8;
+      border-radius: 0.6em;
+      padding: 1.7em 2em;
+      margin-bottom: 2em;
+      margin-top: 1.3em;
+      box-shadow: 0 0.07em 0.5em #ffe;
+    }
+    .cart-btns {
+      margin-top: 1.5em;
+      display: flex;
+      gap: 1em;
+      flex-wrap: wrap;
+    }
+    .back-link {
+      display: inline-block;
+      margin-bottom: 1.5em;
+      cursor: pointer;
+      color: #32CD32;
+      text-decoration: underline;
+      font-family: 'Lobster', cursive;
+      font-size: 1.13em;
+    }
+    @media (max-width: 650px) {
+      .cart-main { padding: 0.4vw 1vw; }
+    }
+  </style>
 </head>
 <body>
   <div id="boc">
+        <div style="float:right; font-size:1.1em; margin:-0.5em 0 1em 0;">
+      🍋 Lemon Points: <span id="lemonPointsDisplay">0</span>
+    <header>
+      <img src="banner.png" title="Lemonania banner" alt="Lemonania banner" style="width:100%">
+    </header>
+    <div id="nav"></div>
+    <script>
+      fetch("nav.html")
+        .then(r => r.text())
+        .then(html => { document.getElementById("nav").innerHTML = html; });
+    </script>
     <div style="float:right; font-size:1.1em; margin:-0.5em 0 1em 0;">
       🍋 Lemon Points: <span id="lemonPointsDisplay">0</span>
     </div>
-    <div class="back" onclick="goBack()" style="margin-bottom: 20px; cursor: pointer; color: #32CD32; text-decoration: underline; font-family: 'Lobster', cursive;">← Continue shopping</div>
-    <h2>Your Cart</h2>
-    <div id="cartItems"></div>
-    <button class="clear-btn btn" onclick="clearCart()">Clear Cart</button>
-    <button class="checkout-btn" onclick="checkout()">Checkout</button>
+    <main class="cart-main">
+      <div class="back-link" onclick="goBack()">← Continue shopping</div>
+      <h2>Your Cart</h2>
+      <div id="cartItems"></div>
+      <div class="cart-btns">
+        <button class="clear-btn btn" onclick="clearCart()">Clear Cart</button>
+        <button class="checkout-btn" onclick="checkout()">Checkout</button>
+      </div>
+    </main>
+    <footer>Created By Alan Zachary O'Keefe &copy; 2027</footer>
   </div>
   <script src="script.js"></script>
   <script>
