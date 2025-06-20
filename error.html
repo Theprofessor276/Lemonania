@@ -4,7 +4,7 @@
     <link rel="stylesheet" href="style.css">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Order-error</title>
+    <title>Oops! Lemonania Error</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Lemon&family=Lobster&display=swap" rel="stylesheet">
@@ -14,10 +14,13 @@
     <div id="boc">
       <div id="lemonania-header"></div>
       <main style='text-align:center;'>
-        Error 503 - Service Unavailable Oops! Our order system is currently down. 🍋😢 We’re experiencing technical difficulties and working hard to fix the issue. Please check back later!<br>
-      <img src="Errorlemon.png" alt='Working lemon' title="Lemon working hard" >
+        <div id="errorMessage"></div>
+        <img src="Errorlemon.png" alt='Working lemon' title="Lemon working hard" style="margin-top:1.5em;">
       </main>
-      <p style="text-align: center;"><a class='retrybtn' href="error.html">Retry</a></p>
+      <p style="text-align: center;">
+        <a class='retrybtn' href="index.html">Return Home</a><br>
+        <a class='retrybtn' href="https://github.com/Theprofessor276/Lemonania/issues" target="_blank">Report an Issue</a>
+      </p>
     </div>
     <script src="script.js"></script>
     <script>
@@ -27,6 +30,18 @@
           document.getElementById('lemonania-header').innerHTML = html;
           if (typeof updateLemonPointsDisplay === "function") updateLemonPointsDisplay();
         });
+      // General error message logic
+      const params = new URLSearchParams(window.location.search);
+      let message = "🍋 <b>Oops! Something went wrong.</b><br>We encountered a problem, or you tried something forbidden.<br>";
+      if(params.get('reason') === 'poppop') {
+        message = "🍋 <b>No one calls you that!</b><br><strong>The name 'pop pop' (or any variant) is forbidden by ancient Lemonania law.<br>Please choose a different username.</strong>";
+      } else if(params.get('reason') === 'notfound') {
+        message = "🍋 <b>Page Not Found.</b><br>The page you were looking for doesn't exist.";
+      } else if(params.get('reason')) {
+        // Display the custom reason
+        message = `<b>Error:</b> ${decodeURIComponent(params.get('reason'))}`;
+      }
+      document.getElementById('errorMessage').innerHTML = message;
     </script>
   </body>
 </html>

@@ -283,6 +283,12 @@ window.registerUser = function() {
   const email = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value;
   const msg = document.getElementById('accountMsg');
+  // --- Pop Pop Forbidden Names Check (redirect to error page instantly) ---
+  const forbiddenNames = [/pop[\s_]?pop/i];
+  if (forbiddenNames.some(re => re.test(username))) {
+    window.location.href = "error.html?reason=poppop";
+    return;
+  }
   if (!username || !email || !password) { msg.innerHTML = '<span class="error">Fill all fields.</span>'; return; }
   if (!/^[a-zA-Z0-9_]+$/.test(username)) { msg.innerHTML = '<span class="error">Username letters, numbers, _ only.</span>'; return; }
   if (username.length < 3 || username.length > 24) { msg.innerHTML = '<span class="error">Username 3-24 chars.</span>'; return; }
@@ -302,6 +308,7 @@ window.registerUser = function() {
     }
   });
 }
+
 window.loginUser = function() {
   const username = document.getElementById('username').value.trim();
   const password = document.getElementById('password').value;
@@ -504,7 +511,7 @@ function isSpamtonActive() {
   return (
     window._lemonAppliedCoupon &&
     window._lemonAppliedCoupon.code &&
-    window._lemonAppliedCoupon.code.toUpperCase() === "SPAMPTON"
+    window._lemonAppliedCoupon.code.toUpperCase() === "SPAMTON"
   );
 }
 
@@ -812,7 +819,7 @@ function renderCart() {
     const div = document.createElement('div');
     div.className = 'item';
     div.innerHTML = `
-      <span>${item} — $${formatPrice(price)} × ${quantity} = $${formatPrice(subtotal)}</span>
+      <span>${item} — ${formatPrice(price)} × ${quantity} = ${formatPrice(subtotal)}</span>
       <div class="item-buttons">
         <button class="btn decrease-btn" onclick="decreaseItem('${item}')">−</button>
         <button class="btn increase-btn" onclick="increaseItem('${item}')">+</button>
@@ -828,7 +835,7 @@ function renderCart() {
   }
   const totalDiv = document.createElement('div');
   totalDiv.style.marginTop = '15px';
-  totalDiv.innerHTML = `<strong>Total: $${formatPrice(total)}</strong>${curseMsg}`;
+  totalDiv.innerHTML = `<strong>Total: ${formatPrice(total)}</strong>${curseMsg}`;
   cartDiv.appendChild(totalDiv);
 }
 
@@ -889,7 +896,7 @@ function renderCartCheckout() {
     const div = document.createElement('div');
     div.className = 'item';
     div.innerHTML = `
-      <span>${item} — $${formatPrice(price)} × ${quantity} = $${formatPrice(subtotal)}</span>
+      <span>${item} — ${formatPrice(price)} × ${quantity} = ${formatPrice(subtotal)}</span>
     `;
     cartDiv.appendChild(div);
   }
@@ -903,7 +910,7 @@ function renderCartCheckout() {
   window._lemonCheckoutBaseTotal = total;
   const totalDiv = document.getElementById('totalDisplay');
   if (totalDiv) {
-    totalDiv.innerHTML = `<span class="total">Order Total: $${formatPrice(total)}</span>${curseMsg}`;
+    totalDiv.innerHTML = `<span class="total">Order Total: ${formatPrice(total)}</span>${curseMsg}`;
   }
   updateCheckoutTotal();
 }
@@ -959,10 +966,10 @@ function getAppliedCoupon() {
 function getCouponByCode(code) {
   if (!code) return null;
   const up = code.trim().toUpperCase();
-  // --- SPECIAL SECRET SPAMPTON CODE ---
-  if (up === "SPAMPTON") {
+  // --- SPECIAL SECRET SPAMTON CODE ---
+  if (up === "SPAMTON") {
     return {
-      code: "SPAMPTON",
+      code: "SPAMTON",
       discount: 20,
       min: 0,
       incompatibleWith: [],
@@ -979,7 +986,7 @@ function getCouponByCode(code) {
 // In your applyCoupon function, replace:
 info.innerHTML = `<span class="discount">Coupon applied: ${coupon.label || coupon.code}</span>`;
 // with:
-if (coupon.code === "SPAMPTON") {
+if (coupon.code === "SPAMTON") {
   info.innerHTML = `That Was A real [[BIG SHOT]] move to use this [[discount code]] have 20 [[kromer]] off`;
 } else {
   info.innerHTML = `<span class="discount">Coupon applied: ${coupon.label || coupon.code}</span>`;
@@ -1037,7 +1044,7 @@ function updateCheckoutTotal() {
     if (subt >= coupon.min && !isCouponExpired(coupon)) {
       discount = Math.min(coupon.discount, subt);
       minRequired = coupon.min;
-      discountLabel = `${coupon.label || coupon.code}: -$${formatPrice(discount)}`;
+      discountLabel = `${coupon.label || coupon.code}: -${formatPrice(discount)}`;
     } else if (isCouponExpired(coupon)) {
       discountLabel = `<span style="color:#c00">Coupon expired!</span>`;
     } else {
@@ -1047,7 +1054,7 @@ function updateCheckoutTotal() {
     if (baseTotal >= reward.min) {
       discount = Math.min(reward.value, baseTotal);
       minRequired = reward.min;
-      discountLabel = `${reward.label || reward.code}: -$${formatPrice(discount)}`;
+      discountLabel = `${reward.label || reward.code}: -${formatPrice(discount)}`;
     } else {
       discountLabel = `<span style="color:#c00">Min $${reward.min} order for reward</span>`;
     }
@@ -1063,7 +1070,7 @@ function updateCheckoutTotal() {
   const totalDiv = document.getElementById('totalDisplay');
   if (totalDiv) {
     totalDiv.innerHTML = `
-      <span class="total">Order Total: $${formatPrice(total)}</span>
+      <span class="total">Order Total: ${formatPrice(total)}</span>
       <br>
       ${discount > 0 ? `<span class="discount">${discountLabel}</span>` : discountLabel}
       ${curseMsg}
@@ -1169,6 +1176,6 @@ function payNow() {
   // Actually process payment (for demo, just clear cart and show message)
   saveCart({});
   window._lemonAppliedCoupon = null;
-  alert(`Thank you for your order! You paid $${formatPrice(total)}.`);
+  alert(`Thank you for your order! You paid ${formatPrice(total)}.`);
   window.location.href = "index.html";
 }
