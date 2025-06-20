@@ -469,8 +469,232 @@ document.addEventListener("DOMContentLoaded", function() {
 
 // === End Lemonania Account System Additions ===
 
+// === Lemonania Utility: General Flexible Price Display Updater ===
+
+/**
+ * Updates all elements containing a data-price attribute within a given container.
+ * Calls formatPrice (if exists) or falls back to $X.XX.
+ * @param {Element|Document} [container=document] - Root element to search within.
+ * @param {string} [selector='.price[data-price]'] - Selector for price elements.
+ * @param {Function|null} [priceOverride=null] - If provided, called as priceOverride(price, el) and should return string to display.
+ */
+function updateAllMenuPrices(container = document, selector = '.price[data-price]', priceOverride = null) {
+  if (!container) container = document;
+  const priceElements = container.querySelectorAll(selector);
+  priceElements.forEach(el => {
+    let price = el.dataset.price !== undefined
+      ? parseFloat(el.dataset.price)
+      : parseFloat(el.getAttribute('data-price'));
+    let display;
+    if (typeof priceOverride === "function") {
+      display = priceOverride(price, el);
+    } else if (typeof formatPrice === "function") {
+      display = formatPrice(price);
+    } else {
+      display = "$" + (typeof price === "number" && !isNaN(price) ? price.toFixed(2) : "0.00");
+    }
+    el.textContent = display;
+  });
+}
+
 // === Begin Lemonania Core Shop/Cart/Points/Coupon Code ===
 
+// === SPAMTON MODE: KROMER PRICES ONLY ===
+function isSpamtonActive() {
+  return (
+    window._lemonAppliedCoupon &&
+    window._lemonAppliedCoupon.code &&
+    window._lemonAppliedCoupon.code.toUpperCase() === "SPAMPTON"
+  );
+}
+
+// PATCH formatPrice to support KROMER and round up
+(function() {
+  // Save the original function
+  const originalFormatPrice = function(num) {
+    return (typeof num === 'number' && !isNaN(num)) ? num.toFixed(2) : '0.00';
+  };
+  window.formatPrice = function(num) {
+    let price = (typeof num === 'number' && !isNaN(num)) ? num : 0;
+    if (isSpamtonActive()) {
+      // Show KROMER, no $; round UP to integer KROMER
+      const kromer = Math.ceil(price);
+      return `${kromer} KROMER`;
+    }
+    return "$" + originalFormatPrice(num);
+  };
+})();
+
+// All cart, points, and rewards functions below now use the patched functions above,
+// so everything is per-account if a user is logged in!
+
+function getLemonPointsDisplay() {
+  // For display purposes: show "no" if cursed
+  const u = getCurrentUser();
+  if (u) {
+    let userObj = getUser(u);
+    if (userObj && userObj.popPopCursed) return "no";
+  }
+  return getLemonPoints();
+}
+
+function updateLemonPointsDisplay() {
+  const elem = document.getElementById('lemonPointsDisplay');
+  if (elem) elem.innerText = getLemonPointsDisplay();
+}
+
+// Cart Count Utility
+function updateCartCount() {
+  const cart = loadCart();
+  let count = 0;
+  for (const item in cart) {
+    count += cart[item].quantity || 0;
+  }
+  const countElem = document.getElementById('cartCount');
+  if (countElem) countElem.innerText = count;
+}
+
+// Cart Controls
+function addToCart(itemName, price) {
+  const cart = loadCart();
+  if (!cart[itemName]) {
+    cart[itemName] = {
+      quantity: 1,
+      price: parseFloat(price)
+    };
+  } else {
+    cart[itemName].quantity += 1;
+  }
+  saveCart(cart);
+  updateCartCount();
+}
+
+function goToCart() {
+  window.location.href = "cart.html";
+}
+function goBack() {
+  history.back();
+}
+function decreaseItem(itemName) {
+  const cart = loadCart();
+  if (cart[itemName]) {
+    cart[itemName].quantity -= 1;
+    if (cart[itemName].quantity <= 0) {
+      delete cart[itemName];
+    }
+    saveCart(cart);
+    if (typeof renderCart === "function") renderCart();
+    updateCartCount();
+  }
+}
+function increaseItem(itemName) {
+  const cart = loadCart();
+  if (cart[itemName]) {
+    cart[itemName].quantity += 1;
+    saveCart(cart);
+    if (typeof renderCart === "function") renderCart();
+    updateCartCount();
+  }
+}
+function clearCart() {
+  if (confirm("Are you sure you want to clear your cart?")) {
+    saveCart({});
+    if (typeof renderCart === "function") renderCart();
+    updateCartCount();
+  }
+}
+function formatPrice(num) {
+  // Should never be called; patched above
+  return (typeof num === 'number' && !isNaN(num)) ? num.toFixed(2) : '0.00';
+}
+
+// Cart Subtotal
+function calcCartSubtotal() {
+  const cart = loadCart();
+  let total = 0;
+  for (const item in cart) {
+    const entry = cart[item];
+    const quantity = entry.quantity ?? 0;
+    const price = entry.price ?? 0;
+    total += price * quantity;
+  }
+  // pop pop curse: if cursed, multiply everything by 5
+  if (isPopPopCursed()) total *= 5;
+  return total;
+}
+
+// Cart Rendering
+function renderCart() {
+  const cart = loadCart();
+  const cartDiv = document.getElementById('cartItems');
+  if (!cartDiv) return;
+  cartDiv.innerHTML = '';
+  let total = 0;
+  if (Object.keys(cart).length === 0) {
+    cartDiv.innerText = "Your cart is empty.";
+    return;
+  }
+  for (const item in cart) {
+    const entry = cart[item];
+    const quantity = entry.quantity ?? 0;
+    const price = entry.price ?? 0;
+    const subtotal = price * quantity;
+    total += subtotal;
+    const div = document.createElement('div');
+    div.className = 'item';
+    div.innerHTML = `
+      <span>${item} — ${formatPrice(price)} × ${quantity} = ${formatPrice(subtotal)}</span>
+      <div class="item-buttons">
+        <button class="btn decrease-btn" onclick="decreaseItem('${item}')">−</button>
+        <button class="btn increase-btn" onclick="increaseItem('${item}')">+</button>
+      </div>
+    `;
+    cartDiv.appendChild(div);
+  }
+  // pop pop curse: if cursed, multiply total by 5 and show a warning
+  let curseMsg = '';
+  if (isPopPopCursed()) {
+    total *= 5;
+    curseMsg = `<div style="color:red;font-weight:bold">Pop Pop Curse: Your total is multiplied by 5!</div>`;
+  }
+  const totalDiv = document.createElement('div');
+  totalDiv.style.marginTop = '15px';
+  totalDiv.innerHTML = `<strong>Total: ${formatPrice(total)}</strong>${curseMsg}`;
+  cartDiv.appendChild(totalDiv);
+}
+
+// Lemon Points logic is already patched via getLemonPoints and setLemonPoints
+
+// === End Lemonania Core Shop/Cart/Points/Coupon Code ===
+
+// --- Restore checkout() nav for cart.html ---
+function checkout() {
+  window.location.href = "checkout.html";
+}
+
+// === Pop Pop Curse Utilities ===
+function isPopPopCursed() {
+  const u = getCurrentUser();
+  if (!u) return false;
+  const userObj = getUser(u);
+  return !!(userObj && userObj.popPopCursed);
+}
+function curseCurrentUserPopPop() {
+  const u = getCurrentUser();
+  if (!u) return;
+  let userObj = getUser(u);
+  if (!userObj) return;
+  userObj.popPopCursed = true;
+  setUser(u, userObj);
+  // Zero out their Lemon Points and set to 'no'
+  localStorage.setItem("lemonPoints__" + u, "0");
+  // Remove their rewards
+  localStorage.setItem("myRewards__" + u, "[]");
+  // Optionally, clear any used rewards as well
+  localStorage.setItem("usedRewards__" + u, "[]");
+}
+
+// === Lemonania Checkout Page Functions ===
 // All cart, points, and rewards functions below now use the patched functions above,
 // so everything is per-account if a user is logged in!
 
@@ -731,19 +955,34 @@ function getAppliedCoupon() {
 }
 
 // Helper: get coupon data from code (case-insensitive)
+// Replace your getCouponByCode with:
 function getCouponByCode(code) {
-  if (!window.COUPON_CODES) return null;
   if (!code) return null;
   const up = code.trim().toUpperCase();
-  if (window.COUPON_CODES.hasOwnProperty(up)) {
+  // --- SPECIAL SECRET SPAMPTON CODE ---
+  if (up === "SPAMPTON") {
+    return {
+      code: "SPAMPTON",
+      discount: 20,
+      min: 0,
+      incompatibleWith: [],
+      label: "Spamton Discount - 20 KROMER off",
+      items: undefined
+    };
+  }
+  if (window.COUPON_CODES && window.COUPON_CODES.hasOwnProperty(up)) {
     return { ...window.COUPON_CODES[up], code: up };
   }
   return null;
 }
 
-function isCouponExpired(coupon) {
-  if (!coupon || !coupon.expires) return false;
-  return Date.now() > coupon.expires;
+// In your applyCoupon function, replace:
+info.innerHTML = `<span class="discount">Coupon applied: ${coupon.label || coupon.code}</span>`;
+// with:
+if (coupon.code === "SPAMPTON") {
+  info.innerHTML = `That Was A real [[BIG SHOT]] move to use this [[discount code]] have 20 [[kromer]] off`;
+} else {
+  info.innerHTML = `<span class="discount">Coupon applied: ${coupon.label || coupon.code}</span>`;
 }
 
 // Helper: check if coupon and reward are compatible
