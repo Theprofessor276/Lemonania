@@ -143,6 +143,7 @@
         <div class="debug-section">
           <h2>Raw localStorage</h2>
           <button class="debug-btn" onclick="showAllLocalStorage()">Show All localStorage</button>
+          <button class="debug-btn" onclick="clearLocalStorageAll()">Clear All localStorage</button>
           <div id="debug-all-storage"></div>
         </div>
 
@@ -457,6 +458,21 @@
         }
         html += '</table>';
         document.getElementById('debug-all-storage').innerHTML = html;
+      }
+      // --- Clear All Local Storage ---
+      function clearLocalStorageAll() {
+        if (confirm("Are you sure you want to clear ALL localStorage data? This cannot be undone.")) {
+          localStorage.clear();
+          alert("All localStorage cleared.");
+          showAllLocalStorage();
+          showUserDebug();
+          showDebugUserStatus();
+          document.getElementById('debug-cart-table').innerHTML = '';
+          document.getElementById('debug-rewards-table').innerHTML = '';
+          document.getElementById('debug-used-rewards-table').innerHTML = '';
+          document.getElementById('debugStatus-lemon').innerText = '';
+          document.getElementById('debugStatus-coupon').innerText = '';
+        }
       }
 
       document.addEventListener("DOMContentLoaded", function() {
