@@ -1502,5 +1502,7 @@ function payNow() {
   saveCart({});
   window._lemonAppliedCoupon = null;
   alert(`Thank you for your order! You paid ${formatPrice(total)}.`);
+  setLemonPoints(getLemonPoints() + total); // Add total to Lemon Points (if not cursed)
   window.location.href = "index.html";
+
 }
