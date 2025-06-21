@@ -384,3 +384,30 @@ img {
     padding: 0.4vw 1vw;
   }
 }
+.lemon-checkbox {
+  width: 404px;
+  height: 404px;
+  accent-color: #FFD700;
+  cursor: pointer;
+  margin: 0;
+  border-radius: 404px;
+  box-shadow: 0 0 0.15em #ffd70055;
+  transition: box-shadow 0.2s;
+  flex-shrink: 0;
+  display: inline-block;
+  vertical-align: middle;
+  -webkit-border-radius: 404px;
+  -moz-border-radius: 404px;
+  -ms-border-radius: 404px;
+  -o-border-radius: 404px;
+}
+.lemon-checkbox:focus {
+  outline: 2px solid #32CD32;
+  box-shadow: 0 0 0.25em #32cd3244;
+}
+@media (max-width: 500px) {
+  .account-form .eula-row {
+    flex-wrap: wrap !important;
+    align-items: flex-start !important;
+  }
+}

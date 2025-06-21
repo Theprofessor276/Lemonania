@@ -9,6 +9,8 @@ const EMAILJS_SERVICE = "service_3uepw1g";
 const EMAILJS_TEMPLATE = "template_bjwslao";
 const EMAILJS_PUBLIC_KEY = "MPEttrKFI6fFs8iNx";
 const EMAILJS_TEMPLATE_VERIFIED = "template_1zqrydx";
+// Place this after your other constants (e.g., after LS_KEY_CURRENT)
+const EULA_VERSION = "2024-06-21"; // Update this string whenever the EULA changes
 (function loadCouponCodes() {
   // Only load if not already loaded
   if (typeof window.COUPON_CODES === "undefined") {
@@ -114,20 +116,32 @@ function renderAccountArea() {
   const user = getCurrentUser();
   if (!user) {
     if (!document.getElementById('accountArea')) return;
-    document.getElementById('accountArea').innerHTML = `
-    <h2>Login or Register</h2>
-    <form class="account-form" id="accountForm" onsubmit="return false">
-      <label for="username">Username:</label>
-      <input type="text" id="username" maxlength="24" required>
-      <label for="email">Email (for fake verification):</label>
-      <input type="email" id="email" maxlength="80" required>
-      <label for="password">Password:</label>
-      <input type="password" id="password" maxlength="32" required>
+document.getElementById('accountArea').innerHTML = `
+  <h2>Login or Register</h2>
+  <form class="account-form" id="accountForm" onsubmit="return false">
+    <label for="username">Username:</label>
+    <input type="text" id="username" maxlength="24" required>
+    <label for="email">Email (for fake verification):</label>
+    <input type="email" id="email" maxlength="80" required>
+    <label for="password">Password:</label>
+    <input type="password" id="password" maxlength="32" required>
+    <div style="margin:0.7em 0; display:flex; align-items:flex-start; gap:0.7em; flex-wrap:wrap; max-width: 100%;">
+      <input type="checkbox" id="eulaAgree" class="lemon-checkbox" required style="margin-top:0.18em;">
+      <label for="eulaAgree" style="line-height:1.4; font-weight:bold; color:#222; flex:1 1 0; min-width:0;">
+        I agree to the
+        <a href="eula.html" target="_blank" style="color:#6c2eb7; text-decoration:underline; font-weight:bold;">
+          Lemonania End User License Agreement
+        </a>
+      </label>
+    </div>
+    <div style="display:flex; gap:0.5em;">
       <button type="button" onclick="registerUser()">Register</button>
       <button type="button" onclick="loginUser()">Login</button>
-      <div id="accountMsg"></div>
-    </form>`;
-  } else {
+    </div>
+    <div id="accountMsg"></div>
+  </form>
+`;
+} else {
     const u = getUser(user);
     let pfp = u && u.pfp
       ? `<img src="${u.pfp}" class="pfp-img" alt="Profile Picture" style="width:80px;height:80px;object-fit:cover;border-radius:50%;margin-bottom:0.5em;"><br>`
@@ -345,6 +359,18 @@ window.registerUser = function() {
   const email = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value;
   const msg = document.getElementById('accountMsg');
+  const eulaBox = document.getElementById('eulaAgree');
+  if (eulaBox && !eulaBox.checked) {
+    msg.innerHTML = '<span class="error">You must agree to the Lemonania EULA to register.</span>';
+    return;
+  }
+
+let users = getAllUsers();
+if (users[username]) { msg.innerHTML = '<span class="error">Username already exists.</span>'; return; }
+if (Object.values(users).some(u => u.email === email)) { msg.innerHTML = '<span class="error">Email already used.</span>'; return; }
+let code = Math.floor(100000 + Math.random()*900000).toString();
+users[username] = { email, password, verified:false, code, pfp:null, eulaAgreed: EULA_VERSION };
+saveAllUsers(users);
   // --- Pop Pop Forbidden Names Check (redirect to error page instantly) ---
   const forbiddenNames = [/pop[\s_]?pop/i];
   if (forbiddenNames.some(re => re.test(username))) {
@@ -354,12 +380,6 @@ window.registerUser = function() {
   if (!username || !email || !password) { msg.innerHTML = '<span class="error">Fill all fields.</span>'; return; }
   if (!/^[a-zA-Z0-9_]+$/.test(username)) { msg.innerHTML = '<span class="error">Username letters, numbers, _ only.</span>'; return; }
   if (username.length < 3 || username.length > 24) { msg.innerHTML = '<span class="error">Username 3-24 chars.</span>'; return; }
-  let users = getAllUsers();
-  if (users[username]) { msg.innerHTML = '<span class="error">Username already exists.</span>'; return; }
-  if (Object.values(users).some(u => u.email === email)) { msg.innerHTML = '<span class="error">Email already used.</span>'; return; }
-  let code = Math.floor(100000 + Math.random()*900000).toString();
-  users[username] = { email, password, verified:false, code, pfp:null };
-  saveAllUsers(users);
   msg.innerHTML = 'Sending verification email...';
   sendVerificationEmail(email, username, code, ok => {
     if (ok) {
@@ -378,6 +398,49 @@ window.loginUser = function() {
   if (!username || !password) { msg.innerHTML = '<span class="error">Fill all fields.</span>'; return; }
   const u = getUser(username);
   if (!u || u.password !== password) { msg.innerHTML = '<span class="error">Incorrect username or password.</span>'; return; }
+  // --- EULA re-agreement check ---
+  if (u.eulaAgreed !== EULA_VERSION) {
+    msg.innerHTML = `
+  <span class="error">The Lemonania EULA has been updated. Please agree to the new terms to continue.</span>
+  <div style="margin:0.7em 0; display:flex; align-items:center; gap:0.5em;">
+    <input type="checkbox" id="eulaAgreeLogin" class="lemon-checkbox" required>
+    <label for="eulaAgreeLogin" style="line-height:1.4;">
+      I agree to the <a href="eula.html" target="_blank">Lemonania End User License Agreement</a>
+    </label>
+  </div>
+  <div style="font-size:0.95em;color:#888;margin-bottom:0.5em;">
+    (You must agree to the latest EULA to use your account. If you have questions, please <a href="mailto:support@lemonania.com">contact support</a>.)
+  </div>
+  <button onclick="agreeEulaAndLogin('${username}', '${password}')">Agree & Continue</button>
+`;
+    return;
+  }
+  window.agreeEulaAndLogin = function(username, password) {
+  const eulaBox = document.getElementById('eulaAgreeLogin');
+  const msg = document.getElementById('accountMsg');
+  if (!eulaBox || !eulaBox.checked) {
+    msg.innerHTML = '<span class="error">You must agree to the Lemonania EULA to continue.</span>';
+    return;
+  }
+  let u = getUser(username);
+  if (!u || u.password !== password) {
+    msg.innerHTML = '<span class="error">Incorrect username or password.</span>';
+    return;
+  }
+  u.eulaAgreed = EULA_VERSION;
+  setUser(username, u);
+  setCurrentUser(username);
+  migrateUserDataToThisUser(username);
+  if (!u.verified) {
+    if (!u.code) {
+      u.code = Math.floor(100000 + Math.random()*900000).toString();
+      setUser(username, u);
+    }
+    sendVerificationEmail(u.email, username, u.code, function(){});
+  }
+  renderAccountArea();
+  renderAccountHeaderBtn();
+};
   setCurrentUser(username);
   migrateUserDataToThisUser(username);
   if (!u.verified) {
@@ -390,6 +453,65 @@ window.loginUser = function() {
   renderAccountArea();
   renderAccountHeaderBtn();
 }
+window.loginUser = function() {
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+  const msg = document.getElementById('accountMsg');
+  if (!username || !password) { msg.innerHTML = '<span class="error">Fill all fields.</span>'; return; }
+  const u = getUser(username);
+  if (!u || u.password !== password) { msg.innerHTML = '<span class="error">Incorrect username or password.</span>'; return; }
+  // --- EULA re-agreement check ---
+  if (u.eulaAgreed !== EULA_VERSION) {
+    msg.innerHTML = `
+      <span class="error">The Lemonania EULA has been updated. Please agree to the new terms to continue.</span>
+      <div style="margin:0.5em 0;">
+        <input type="checkbox" id="eulaAgreeLogin" required>
+        <label for="eulaAgreeLogin">
+          I agree to the <a href="eula.html" target="_blank">Lemonania End User License Agreement</a>
+        </label>
+      </div>
+      <button onclick="agreeEulaAndLogin('${username}', '${password}')">Agree & Continue</button>
+    `;
+    return;
+  }
+  setCurrentUser(username);
+  migrateUserDataToThisUser(username);
+  if (!u.verified) {
+    if (!u.code) {
+      u.code = Math.floor(100000 + Math.random()*900000).toString();
+      setUser(username, u);
+    }
+    sendVerificationEmail(u.email, username, u.code, function(){});
+  }
+  renderAccountArea();
+  renderAccountHeaderBtn();
+}
+window.agreeEulaAndLogin = function(username, password) {
+  const eulaBox = document.getElementById('eulaAgreeLogin');
+  const msg = document.getElementById('accountMsg');
+  if (!eulaBox || !eulaBox.checked) {
+    msg.innerHTML = '<span class="error">You must agree to the Lemonania EULA to continue.</span>';
+    return;
+  }
+  let u = getUser(username);
+  if (!u || u.password !== password) {
+    msg.innerHTML = '<span class="error">Incorrect username or password.</span>';
+    return;
+  }
+  u.eulaAgreed = EULA_VERSION;
+  setUser(username, u);
+  setCurrentUser(username);
+  migrateUserDataToThisUser(username);
+  if (!u.verified) {
+    if (!u.code) {
+      u.code = Math.floor(100000 + Math.random()*900000).toString();
+      setUser(username, u);
+    }
+    sendVerificationEmail(u.email, username, u.code, function(){});
+  }
+  renderAccountArea();
+  renderAccountHeaderBtn();
+};
 window.logoutUser = function() {
   // "pop pop" curse: prevent logout for cursed users
   const u = getCurrentUser();

@@ -20,4 +20,9 @@ Give chances for me to learn and improve my skills. I want to learn how to make 
 give me enough information to understand how the code works and how to make changes to it. I want to be able to
 make changes to the code and understand how it works. I want to be able to add new features and make changes to the website without breaking it.
 the goal should be to learn so I can improve my skills and make a better website on my own. allow me to ask questions and get help when I need it.
-but also encourage me to try and figure things out on my own. I want to be able to learn from my mistakes and improve my skills.
+but also encourage me to try and figure things out on my own. I want to be able to learn from my mistakes and improve my skills. make use of file path comments
+to help me understand where the code is located and how it works. use clear and descriptive commit messages to explain the changes made to the codebase.
+# sigle word instructions
+- space: space out the code nicely for readability and neatness
+- comment: add comments to the code to explain how and why it works
+- show: make use of file path comments to help me understand where the code is located
