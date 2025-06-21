@@ -1355,7 +1355,7 @@ else if (code.toLowerCase() === "uzi") {
     return;
 }
 else if (code.toLowerCase() === "alan") {
-    info.innerHTML = `<span class="error" style="">that sounds like a name but whose name I wonder hmm</span>`;
+    info.innerHTML = `<span class="error" style="">I'm not giving you a discount just because you used my name</span>`;
     return;
 }
 else if (code.toLowerCase() === "theprofessor276") {
@@ -1370,49 +1370,39 @@ else if (code.toLowerCase() === "alan okeefe") {
   info.innerHTML = `<span class="error" style="">The least you could've done is spell it correctly. I'm so disappointed.</span>`;
   return;
 }
-// Handle common misspellings of "Alan O'Keefe"
 else if (
   [
-    "alan o keefe",
-    "alan o'keef",
-    "alan okeef",
-    "alan o keef",
-    "alan o'keffe",
-    "alan okefe",
-    "alan o'keefee",
-    "alan o keefee",
-    "alan o'keefy",
-    "alan o keefy",
-    "allan o'keefe",
-    "allan okeefe",
-    "allan o keefe",
-    "allen o'keefe",
-    "allen okeefe",
-    "allen o keefe",
-    "alan o'keefee",
-    "alan o'keefy",
-    "alan o'keefy",
-    "alan o'keefey",
-    "alan o'keefey",
-    "alan o'keefey",
-    "alan o'keefey",
-    "alan o'keefey",
-    "alan o'keefey",
-    "alan o'keefey",
-    "alan o'keefey"
+    // O'Keefe-only variants
+    "alan o keefe", "alan o'keef", "alan okeef", "alan o keef",
+    "alan o'keffe", "alan okefe", "alan o'keefee", "alan o keefee",
+    "alan o'keefy", "alan o keefy", "allan o'keefe", "allan okeefe",
+    "allan o keefe", "allen o'keefe", "allen okeefe", "allen o keefe",
+    "alan o'keefey", "alan o'kefe", "alan o'keefy",
+
+    // Misspelled name attempts with zachary
+    "alan zachary o keefe", "alan zachary okeefe", "alan zachary o'keef",
+    "alan zachary okefe", "alan z o'keefe", "alan z okeefe",
+    "alan z o keefe", "alan zachery o'keefe", "alan zackary o'keefe",
+    "allen zachary o'keefe", "allan zachary o'keefe", "alan zachary o'kefe"
   ].includes(code.toLowerCase())
 ) {
-  // Special message for "allen" or "allan" variants
-  if (
-    code.toLowerCase().includes("allen") ||
-    code.toLowerCase().includes("allan")
-  ) {
-    info.innerHTML = `<span class="error" style="">what are you my dad?</span>`;
-  } else {
-    info.innerHTML = `<span class="error" style="">Nope, that's not a coupon code (and you misspelled it).</span>`;
+  const c = code.toLowerCase();
+
+  if (c.includes("allen") || c.includes("allan")) {
+    info.innerHTML = `<span class="error">What are you, my dad?</span>`;
+  } else if (c.includes("zackary") || c.includes("zachery")) {
+    info.innerHTML = `<span class="error">You tried the full name, huh? Nice effort. Still no discount and its not even my full name try harder you even misspelled it I dont know how you could do that as ist right under neath this box</span>`;
+  }
+  else if (c.includes("zachary")){
+  info.innerHTML = `<span class="error">You tried the full name, huh? Nice effort. Still no discount and its not even my full name try harder.</span>`;
+
+  }
+   else {
+    info.innerHTML = `<span class="error">Nope, that's not a coupon code (and you misspelled it).</span>`;
   }
   return;
 }
+
 // Removed stray return here
 
   if (!window.COUPON_CODES) {
