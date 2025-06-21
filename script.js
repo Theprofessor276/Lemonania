@@ -63,6 +63,35 @@ function sendVerificationEmail(toEmail, username, code, cb) {
   }).then(r => r.ok ? cb(true) : cb(false))
     .catch(e => cb(false));
 }
+
+function getSelectedCurrency() {
+  return localStorage.getItem("lemonCurrency") || "USD";
+}
+function setSelectedCurrency(cur) {
+  if (CURRENCIES[cur]) localStorage.setItem("lemonCurrency", cur);
+}
+
+// Patch formatPrice to support currency and KROMER (Spamton) mode
+(function() {
+  window.formatPrice = function(num) {
+    let price = (typeof num === 'number' && !isNaN(num)) ? num : 0;
+    const cur = getSelectedCurrency();
+    const { symbol, rate } = CURRENCIES[cur] || CURRENCIES.USD;
+    // Show KROMER if Spamton mode is active OR KROMER is selected
+    if (
+      (typeof isSpamtonActive === "function" && isSpamtonActive()) ||
+      cur === "KROMER"
+    ) {
+      const kromer = Math.ceil(price * rate);
+      return `${kromer} KROMER`;
+    }
+    // JPY: no decimals
+    if (cur === "JPY") {
+      return symbol + Math.round(price * rate);
+    }
+    return symbol + (price * rate).toFixed(2);
+  };
+})();
 function sendAccountVerifiedEmail(toEmail, username, cb) {
   fetch("https://api.emailjs.com/api/v1.0/email/send", {
     method: "POST",
@@ -117,6 +146,22 @@ function renderAccountArea() {
       logoutBtnStyle = 'background:#c00!important;color:#eee!important;cursor:not-allowed;border-color:#900!important;pointer-events:none;opacity:0.7;';
       logoutBtnAttrs = 'disabled title="Cursed users may not log out."';
     }
+// --- Currency Selector ---
+let currencyOptions = Object.entries(CURRENCIES).filter(([code]) => {
+  // Only show KROMER if Spamton mode is active or currently selected
+  return code !== "KROMER" || isSpamtonActive() || getSelectedCurrency() === "KROMER";
+}).map(([code, cur]) =>
+  `<option value="${code}"${getSelectedCurrency() === code ? " selected" : ""}>${cur.symbol} ${code} (${cur.name})</option>`
+).join("");
+let currencySelector = `
+  <label for="currencySelect"><b>Preferred Currency:</b></label>
+  <select id="currencySelect" style="margin-left:0.5em;">
+    ${currencyOptions}
+  </select>
+  <span id="currencySavedMsg" style="color:green;display:none;">Saved!</span>
+  <br><br>
+`;
+
     if (!document.getElementById('accountArea')) return;
     document.getElementById('accountArea').innerHTML = `
       <h2>Your Lemonania Account</h2>
@@ -126,6 +171,7 @@ function renderAccountArea() {
           <input type="file" id="pfpInput" accept="image/*" style="margin:0.5em auto 1em auto;" onchange="changePFP(event)">
         </form>
       </div>
+      ${currencySelector}
       <table class="account-info-table">
         <tr><th>Username:</th><td>${user}</td></tr>
         <tr><th>Email:</th><td>${u.email}</td></tr>
@@ -143,6 +189,22 @@ function renderAccountArea() {
       </div>
       <div id="accountMsg"></div>
     `;
+
+    // Add event listener for currency select
+    setTimeout(() => {
+      const sel = document.getElementById("currencySelect");
+      if (sel) {
+        sel.onchange = function() {
+          setSelectedCurrency(this.value);
+          updateAllMenuPrices();
+          if (typeof renderCart === "function") renderCart();
+          if (typeof renderCartCheckout === "function") renderCartCheckout();
+          if (typeof updateCheckoutTotal === "function") updateCheckoutTotal();
+          document.getElementById("currencySavedMsg").style.display = "inline";
+          setTimeout(() => document.getElementById("currencySavedMsg").style.display = "none", 1200);
+        };
+      }
+    }, 0);
   }
 }
 
@@ -485,22 +547,16 @@ document.addEventListener("DOMContentLoaded", function() {
  * @param {string} [selector='.price[data-price]'] - Selector for price elements.
  * @param {Function|null} [priceOverride=null] - If provided, called as priceOverride(price, el) and should return string to display.
  */
-function updateAllMenuPrices(container = document, selector = '.price[data-price]', priceOverride = null) {
-  if (!container) container = document;
-  const priceElements = container.querySelectorAll(selector);
-  priceElements.forEach(el => {
-    let price = el.dataset.price !== undefined
-      ? parseFloat(el.dataset.price)
-      : parseFloat(el.getAttribute('data-price'));
-    let display;
-    if (typeof priceOverride === "function") {
-      display = priceOverride(price, el);
-    } else if (typeof formatPrice === "function") {
-      display = formatPrice(price);
-    } else {
-      display = "$" + (typeof price === "number" && !isNaN(price) ? price.toFixed(2) : "0.00");
-    }
-    el.textContent = display;
+function updateAllMenuPrices(container = document) {
+  // Update .price[data-price] (legacy/main menu)
+  container.querySelectorAll('.price[data-price]').forEach(el => {
+    const price = parseFloat(el.getAttribute('data-price'));
+    el.textContent = typeof formatPrice === "function" ? formatPrice(price) : "$" + price.toFixed(2);
+  });
+  // Update .menu-price[data-base] (merch, secret menu, etc)
+  container.querySelectorAll('.menu-price[data-base]').forEach(el => {
+    const price = parseFloat(el.getAttribute('data-base'));
+    el.textContent = typeof formatPrice === "function" ? formatPrice(price) : "$" + price.toFixed(2);
   });
 }
 
@@ -515,22 +571,48 @@ function isSpamtonActive() {
   );
 }
 
-// PATCH formatPrice to support KROMER and round up
-(function() {
-  // Save the original function
-  const originalFormatPrice = function(num) {
-    return (typeof num === 'number' && !isNaN(num)) ? num.toFixed(2) : '0.00';
+// --- Lemonania Currency Exchange Rates ---
+function renderCurrencySelector() {
+  let sel = document.getElementById("currencySelector");
+  if (!sel) {
+    sel = document.createElement("select");
+    sel.id = "currencySelector";
+    sel.style.margin = "0 1em";
+    // Try to insert into #boc if it exists, else at top of body
+    const boc = document.getElementById("boc");
+    if (boc) boc.insertBefore(sel, boc.firstChild);
+    else document.body.insertBefore(sel, document.body.firstChild);
+  }
+  sel.innerHTML = ""; // Clear existing options
+
+  const selected = getSelectedCurrency();
+  for (const code in CURRENCIES) {
+    // Only show KROMER if Spamton mode is active or currently selected
+    if (code === "KROMER" && !(isSpamtonActive() || selected === "KROMER")) continue;
+    const opt = document.createElement("option");
+    opt.value = code;
+    opt.text = `${CURRENCIES[code].symbol} ${code}`;
+    sel.appendChild(opt);
+  }
+  sel.value = selected;
+  sel.onchange = function() {
+    setSelectedCurrency(this.value);
+    updateAllMenuPrices();
+    if (typeof renderCart === "function") renderCart();
+    if (typeof renderCartCheckout === "function") renderCartCheckout();
+    if (typeof updateCheckoutTotal === "function") updateCheckoutTotal();
   };
-  window.formatPrice = function(num) {
-    let price = (typeof num === 'number' && !isNaN(num)) ? num : 0;
-    if (isSpamtonActive()) {
-      // Show KROMER, no $; round UP to integer KROMER
-      const kromer = Math.ceil(price);
-      return `${kromer} KROMER`;
-    }
-    return "$" + originalFormatPrice(num);
-  };
-})();
+}
+// Update these rates as needed. Rates are relative to USD (1 = $1.00).
+const CURRENCIES = {
+  USD: { symbol: "$", rate: 1, name: "US Dollar" },
+  EUR: { symbol: "€", rate: 0.92, name: "Euro" },
+  GBP: { symbol: "£", rate: 0.78, name: "British Pound" },
+  JPY: { symbol: "¥", rate: 157.5, name: "Japanese Yen" },
+  CAD: { symbol: "C$", rate: 1.37, name: "Canadian Dollar" },
+  KROMER: { symbol: "", rate: 1, name: "KROMER (Spamton Mode)" } // Only shown in Spamton mode
+};
+// To update rates, just change the 'rate' value above.
 
 // All cart, points, and rewards functions below now use the patched functions above,
 // so everything is per-account if a user is logged in!
@@ -609,10 +691,6 @@ function clearCart() {
     if (typeof renderCart === "function") renderCart();
     updateCartCount();
   }
-}
-function formatPrice(num) {
-  // Should never be called; patched above
-  return (typeof num === 'number' && !isNaN(num)) ? num.toFixed(2) : '0.00';
 }
 
 // Cart Subtotal
@@ -780,9 +858,7 @@ function clearCart() {
     updateCartCount();
   }
 }
-function formatPrice(num) {
-  return (typeof num === 'number' && !isNaN(num)) ? num.toFixed(2) : '0.00';
-}
+
 
 // Cart Subtotal
 function calcCartSubtotal() {
@@ -970,10 +1046,10 @@ function getCouponByCode(code) {
   if (up === "SPAMTON") {
     return {
       code: "SPAMTON",
-      discount: 20,
+      discount: [Math.floor(1 + Math.random() * 20)], // Random discount between 1 and 20
       min: 0,
       incompatibleWith: [],
-      label: "Spamton Discount - 20 KROMER off",
+      label: "You used A [[BIG SHOT]] code so heres your [[discount]]",
       items: undefined
     };
   }
@@ -983,14 +1059,7 @@ function getCouponByCode(code) {
   return null;
 }
 
-// In your applyCoupon function, replace:
-info.innerHTML = `<span class="discount">Coupon applied: ${coupon.label || coupon.code}</span>`;
-// with:
-if (coupon.code === "SPAMTON") {
-  info.innerHTML = `That Was A real [[BIG SHOT]] move to use this [[discount code]] have 20 [[kromer]] off`;
-} else {
-  info.innerHTML = `<span class="discount">Coupon applied: ${coupon.label || coupon.code}</span>`;
-}
+
 
 // Helper: check if coupon and reward are compatible
 function isCouponIncompatibleWithReward(coupon, reward) {
@@ -1078,6 +1147,11 @@ function updateCheckoutTotal() {
   }
 }
 
+// Declare _lemonAppliedCoupon on window for TypeScript
+if (typeof window._lemonAppliedCoupon === "undefined") {
+  window._lemonAppliedCoupon = null;
+}
+
 // Apply coupon code button
 function applyCoupon() {
   const code = document.getElementById('coupon').value.trim();
@@ -1087,7 +1161,7 @@ function applyCoupon() {
     return;
   }
   // Special curse: "pop pop"
-  if (code.toLowerCase() === "pop pop") {
+  else if (code.toLowerCase() === "pop pop") {
     curseCurrentUserPopPop();
     info.innerHTML = `<span class="error">This coupon code Never has and never will exist</span>
       <br><span style="color:red;font-weight:bold;">You are cursed. All prices x5, Lemon Points erased, rewards lost, and logout/account change forbidden.</span>`;
@@ -1097,31 +1171,160 @@ function applyCoupon() {
     updateCheckoutTotal();
     return;
   }
+  else if (code.toLowerCase() === "sans") {
+        info.innerHTML = `<span class="error" style="font-family: 'Comic Sans MS', 'Comic Sans', cursive;">heh. sorry, kid. i'm too buzy taking a nap to apply that coupon.<br>maybe next time.</span>`;
+        return;
+  }
+  else if (code.toLowerCase() === "lemon") {
+    info.innerHTML = `<span class="error" style="font-family: 'lemon'">Nice try but no dice</span>`
+   return;
+  }
+  else if (code.toLowerCase() === "undyne") {
+      info.innerHTML = `<span class="error" style="font-family: Arial Black, Arial, sans-serif; color:#1976d2; font-weight:bold;">WHAT?! YOU THINK YOU CAN JUST USE ANY COUPON YOU WANT?! NOT ON MY WATCH!</span>`;
+      return;
+  }
+  else if (code.toLowerCase() === "alphys") {
+      info.innerHTML = `<span class="error" style="font-family: Verdana, Arial, sans-serif; color:#ffb347;">um, s-sorry! that coupon code doesn't, uh, work... b-but you can try another one if you want!!</span>`;
+      return;
+  }
+  else if (code.toLowerCase() === "mettaton") {
+      info.innerHTML = `<span class="error" style="font-family: 'Arial', 'Helvetica', sans-serif; color:#e91e63; font-weight:bold; letter-spacing:2px;">OOOH YES! THAT COUPON CODE IS QUITE FABULOUS ENOUGH FOR THIS SHOW BUT UNFORTUNATELY IT DOESN'T WORK TRY AGAIN DARLING</span>`;
+      return;
+  }
+  else if (code.toLowerCase() === "asgore") {
+      info.innerHTML = `<span class="error" style="font-family: 'Times New Roman', Times, serif; color:#795548;">I'm sorry, my child. This coupon cannot be accepted. But please, do not lose hope.</span>`;
+      return;
+  }
+  else if (code.toLowerCase() === "toriel") {
+      info.innerHTML = `<span class="error" style="font-family: 'Georgia', serif; color:#a0522d;">Hello, dear. That coupon code is not valid. Would you like some pie instead?</span>`;
+      return;
+  }
+  else if (code.toLowerCase() === "susie") {
+      info.innerHTML = `<span class="error" style="font-family: Impact, Charcoal, sans-serif; color:#8e24aa;">huh? coupon? pfft. nice try, nerd.</span>`;
+      return;
+  }
+  else if (code.toLowerCase() === "ralsei") {
+      info.innerHTML = `<span class="error" style="font-family: 'Comic Sans MS', 'Comic Sans', cursive; color:#43a047;">Oh! Um, sorry... That coupon doesn't seem to work. But don't give up!</span>`;
+      return;
+  }
+  else if (code.toLowerCase() === "lancer") {
+      info.innerHTML = `<span class="error" style="font-family: 'Comic Sans MS', 'Comic Sans', cursive; color:#1565c0;">Nyeh heh heh! That coupon code is as fake as my dad's mustache!</span>`;
+      return;
+  }
+    else if (code.toLowerCase() === "papyrus") {
+      info.innerHTML = `<span class="error" style="font-family: 'Papyrus', cursive; letter-spacing:1px; font-weight:bold;">NYEH HEH HEH! NICE TRY, HUMAN! BUT THIS COUPON IS TOO GREAT FOR THIS WEBSITE TO HANDLE!</span>`;
+      return;
+  }
+    else if (code.toLowerCase() === "fred") {
+    info.innerHTML = `<span class="error" style="font-family: 'lemon'">what is that your name, why are you trying that?</span>`
+   return;
+  }
+else if (code.toLowerCase() === "spamton") {
+  setSelectedCurrency("KROMER");
+  renderCurrencySelector();
+  //dont put return here, we want to apply the coupon
+}
+  else if (code.toLowerCase() === "n") {
+    info.innerHTML = `<span class="error">uh, sorry! i don't think that coupon works... but, um, good effort!</span>`;
+    return;
+}
+else if (code.toLowerCase() === "uzi") {
+    info.innerHTML = `<span class="error" style="font-family: 'Courier New', Courier, monospace; color:#ff4081;">wow, you really thought that would work? cringe.</span>`;
+    return;
+}
+else if (code.toLowerCase() === "alan") {
+    info.innerHTML = `<span class="error" style="">that sounds like a name but whose name I wonder hmm</span>`;
+    return;
+}
+else if (code.toLowerCase() === "theprofessor276") {
+    info.innerHTML = `<span class="error" style="">Sounds like a cool username but unfortuneatly its taken(by me) and is also not a coupon sorry</span>`;
+    return;
+}
+else if (code.toLowerCase() === "alan o'keefe") {
+  info.innerHTML = `<span class="error" style="">I AM NOT A COUPON CODE!</span>`;
+  return;
+}
+else if (code.toLowerCase() === "alan okeefe") {
+  info.innerHTML = `<span class="error" style="">The least you could've done is spell it correctly. I'm so disappointed.</span>`;
+  return;
+}
+// Handle common misspellings of "Alan O'Keefe"
+else if (
+  [
+    "alan o keefe",
+    "alan o'keef",
+    "alan okeef",
+    "alan o keef",
+    "alan o'keffe",
+    "alan okefe",
+    "alan o'keefee",
+    "alan o keefee",
+    "alan o'keefy",
+    "alan o keefy",
+    "allan o'keefe",
+    "allan okeefe",
+    "allan o keefe",
+    "allen o'keefe",
+    "allen okeefe",
+    "allen o keefe",
+    "alan o'keefee",
+    "alan o'keefy",
+    "alan o'keefy",
+    "alan o'keefey",
+    "alan o'keefey",
+    "alan o'keefey",
+    "alan o'keefey",
+    "alan o'keefey",
+    "alan o'keefey",
+    "alan o'keefey",
+    "alan o'keefey"
+  ].includes(code.toLowerCase())
+) {
+  // Special message for "allen" or "allan" variants
+  if (
+    code.toLowerCase().includes("allen") ||
+    code.toLowerCase().includes("allan")
+  ) {
+    info.innerHTML = `<span class="error" style="">what are you my dad?</span>`;
+  } else {
+    info.innerHTML = `<span class="error" style="">Nope, that's not a coupon code (and you misspelled it).</span>`;
+  }
+  return;
+}
+// Removed stray return here
+
   if (!window.COUPON_CODES) {
     info.innerHTML = `<span class="error">Coupon system not loaded.</span>`;
     return;
   }
   const coupon = getCouponByCode(code);
   if (!coupon) {
-    info.innerHTML = `<span class="error">Invalid coupon code.</span>`;
     window._lemonAppliedCoupon = null;
+    info.innerHTML = `<span class="error">Invalid coupon code.</span>`;
     updateCheckoutTotal();
     return;
   }
-  if (isCouponExpired(coupon)) {
-    info.innerHTML = `<span class="error">Coupon expired.</span>`;
+  else if (isCouponExpired(coupon)) {
     window._lemonAppliedCoupon = null;
+    info.innerHTML = `<span class="error">Coupon expired.</span>`;
     updateCheckoutTotal();
     return;
   }
   window._lemonAppliedCoupon = coupon;
-  info.innerHTML = `<span class="discount">Coupon applied: ${coupon.label || coupon.code}</span>`;
+  if (coupon.code === "SPAMTON") {
+    info.innerHTML = `That Was A real [[BIG SHOT]] move to use this [[discount code]] have I'll take some [[kromer]] off your order`;
+  } else {
+    info.innerHTML = `<span class="discount">Coupon applied: ${coupon.label || coupon.code}</span>`;
+  }
+
   updateCheckoutTotal();
 }
 
 // Cancel coupon button
 function cancelCoupon() {
   window._lemonAppliedCoupon = null;
+  if (getSelectedCurrency() === "KROMER") setSelectedCurrency("USD");
+  renderCurrencySelector();
   document.getElementById('coupon').value = "";
   document.getElementById('discountInfo').innerHTML = "";
   updateCheckoutTotal();

@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <link rel="stylesheet" href="style.css">
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Lemonania Menu</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Lemon&family=Lobster&display=swap" rel="stylesheet">
@@ -19,6 +19,7 @@
     </div>
     <div id="boc">
       <div id="lemonania-header"></div>
+      <!-- Currency selector will be inserted here by JS -->
       <main>
         <h1><a href="secratemenu.html" class="hidden">MENU</a></h1>
         <blockquote>
@@ -31,48 +32,48 @@
           <h2>Entrees</h2>
           <ul>
             <li>
-              Giant Lemon<br>- $14.99, 250 cal.
+              Giant Lemon<br>- <span class="menu-price" data-base="14.99"></span>, 250 cal.
               <button class="order-btn" onclick="addToCart('Giant Lemon', 14.99)">Add to Cart</button>
             </li>
             <li>
-              Lemon<br>- $9.99, 180 cal.
+              Lemon<br>- <span class="menu-price" data-base="9.99"></span>, 180 cal.
               <button class="order-btn" onclick="addToCart('Lemon', 9.99)">Add to Cart</button>
             </li>
             <li>
-              Pan fried Lemon<br>- $12.49, 220 cal.
+              Pan fried Lemon<br>- <span class="menu-price" data-base="12.49"></span>, 220 cal.
               <button class="order-btn" onclick="addToCart('Pan fried Lemon', 12.49)">Add to Cart</button>
             </li>
             <li>
-              Violent Lemon<br>- $15.99, 270 cal.
+              Violent Lemon<br>- <span class="menu-price" data-base="15.99"></span>, 270 cal.
               <button class="order-btn" onclick="addToCart('Violent Lemon', 15.99)">Add to Cart</button>
             </li>
             <li>
-              Purified Lemon<br>- $13.49, 210 cal.
+              Purified Lemon<br>- <span class="menu-price" data-base="13.49"></span>, 210 cal.
               <button class="order-btn" onclick="addToCart('Purified Lemon', 13.49)">Add to Cart</button>
             </li>
             <li>
-              Multiple lemons<br>- $17.99, 300 cal.
+              Multiple lemons<br>- <span class="menu-price" data-base="17.99"></span>, 300 cal.
               <button class="order-btn" onclick="addToCart('Multiple lemons', 17.99)">Add to Cart</button>
             </li>
           </ul>
         </section>
         <section class="s4">
-          <h2>Appatisers</h2>
+          <h2>Appetisers</h2>
           <ul class="dropdown">
             <li>
-              Fried Lemon<br>- $5.99, 120 cal.
+              Fried Lemon<br>- <span class="menu-price" data-base="5.99"></span>, 120 cal.
               <button class="order-btn" onclick="addToCart('Fried Lemon',5.99)">Add to Cart</button>
             </li>
             <li>
-              Freeze dried Lemon<br>- $4.49, 90 cal.
+              Freeze dried Lemon<br>- <span class="menu-price" data-base="4.49"></span>, 90 cal.
               <button class="order-btn" onclick="addToCart('Freeze dried Lemon',4.49)">Add to Cart</button>
             </li>
             <li>
-              Frenched Lemons<br>- $6.99, 150 cal.
+              Frenched Lemons<br>- <span class="menu-price" data-base="6.99"></span>, 150 cal.
               <button class="order-btn" onclick="addToCart('Frenched Lemons',6.99)">Add to Cart</button>
             </li>
             <li>
-              Lemon bites<br>- $5.49, 110 cal.
+              Lemon bites<br>- <span class="menu-price" data-base="5.49"></span>, 110 cal.
               <button class="order-btn" onclick="addToCart('Lemon bites',5.49)">Add to Cart</button>
             </li>
           </ul>
@@ -81,28 +82,28 @@
           <h2>Beverages</h2>
           <ul>
             <li>
-              Lemon Lemonaid<br>- $3.99, 140 cal.
+              Lemon Lemonaid<br>- <span class="menu-price" data-base="3.99"></span>, 140 cal.
               <button class="order-btn" onclick="addToCart('Lemon Lemonaid',3.99)">Add to Cart</button>
             </li>
           </ul>
         </section>
         <section class="s4">
-          <h2>Deserts</h2>
+          <h2>Desserts</h2>
           <ul>
             <li>
-              Caramelised Lemon<br>- $6.99, 160 cal.
+              Caramelised Lemon<br>- <span class="menu-price" data-base="6.99"></span>, 160 cal.
               <button class="order-btn" onclick="addToCart('Caramelised Lemon', 6.99)">Add to Cart</button>
             </li>
             <li>
-              Lemon cake<br>- $7.99, 250 cal.
+              Lemon cake<br>- <span class="menu-price" data-base="7.99"></span>, 250 cal.
               <button class="order-btn" onclick="addToCart('Lemon cake', 7.99)">Add to Cart</button>
             </li>
             <li>
-              Lemon cookie<br>- $5.49, 200 cal.
+              Lemon cookie<br>- <span class="menu-price" data-base="5.49"></span>, 200 cal.
               <button class="order-btn" onclick="addToCart('Lemon cookie', 5.49)">Add to Cart</button>
             </li>
             <li>
-              Lemon singularity<br>- $9.99, 280 cal.
+              Lemon singularity<br>- <span class="menu-price" data-base="9.99"></span>, 280 cal.
               <button class="order-btn" onclick="addToCart('Lemon singularity', 9.99)">Add to Cart</button>
             </li>
           </ul>
@@ -112,15 +113,47 @@
     </div>
     <script src="script.js"></script>
     <script>
+      // Load header
       fetch('header.html')
         .then(r => r.text())
         .then(html => {
           document.getElementById('lemonania-header').innerHTML = html;
           if (typeof updateLemonPointsDisplay === "function") updateLemonPointsDisplay();
         });
+
       document.addEventListener("DOMContentLoaded", function() {
-        updateCartCount();
+        updateCartCount && updateCartCount();
+        updateMenuPrices();
       });
+
+
+      // Update all menu prices
+      function updateMenuPrices() {
+        document.querySelectorAll(".menu-price").forEach(function(el) {
+          const base = parseFloat(el.getAttribute("data-base"));
+          el.textContent = formatPrice(base);
+        });
+      }
+
+      // Listen for currency changes in other tabs/pages
+      window.addEventListener("storage", function(e) {
+        if (e.key === "lemonCurrency") {
+          updateMenuPrices();
+          const sel = document.getElementById("currencySelector");
+          if (sel) sel.value = getSelectedCurrency();
+        }
+      });
+
+      // Patch setSelectedCurrency to always update prices
+      (function() {
+        const origSetSelectedCurrency = window.setSelectedCurrency;
+        window.setSelectedCurrency = function(cur) {
+          origSetSelectedCurrency(cur);
+          updateMenuPrices();
+          const sel = document.getElementById("currencySelector");
+          if (sel) sel.value = getSelectedCurrency();
+        };
+      })();
     </script>
   </body>
 </html>

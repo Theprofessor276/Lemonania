@@ -12,10 +12,9 @@
   </head>
   <body>
     <div class="cart" onclick="goToCart()">
-<div class="cart-icon">
+      <div class="cart-icon">
         <p>🛒</p>
         <div class="cart-count" id="cartCount">0</div>
-      </div>
       </div>
     </div>
     <div id="boc">
@@ -32,31 +31,31 @@
           <h2>Secret Items</h2>
           <ul>
             <li>
-              Reverse Lemon<br>- $8.99, 210 cal.
+              Reverse Lemon<br>- <span class="menu-price" data-base="8.99"></span>, 210 cal.
               <button class="order-btn" onclick="addToCart('Reverse Lemon', 8.99)">Add to Cart</button>
             </li>
             <li>
-              Quantum Lemon<br>- $14.99, 260 cal.
+              Quantum Lemon<br>- <span class="menu-price" data-base="14.99"></span>, 260 cal.
               <button class="order-btn" onclick="addToCart('Quantum Lemon', 14.99)">Add to Cart</button>
             </li>
             <li>
-              Lemon Noir<br>- $12.49, 240 cal.
+              Lemon Noir<br>- <span class="menu-price" data-base="12.49"></span>, 240 cal.
               <button class="order-btn" onclick="addToCart('Lemon Noir', 12.49)">Add to Cart</button>
             </li>
             <li>
-              Lemon Iceberg<br>- $10.99, 150 cal.
+              Lemon Iceberg<br>- <span class="menu-price" data-base="10.99"></span>, 150 cal.
               <button class="order-btn" onclick="addToCart('Lemon Iceberg', 10.99)">Add to Cart</button>
             </li>
             <li>
-              Invisible Lemon<br>- $6.99, 0 cal.
+              Invisible Lemon<br>- <span class="menu-price" data-base="6.99"></span>, 0 cal.
               <button class="order-btn" onclick="addToCart('Invisible Lemon', 6.99)">Add to Cart</button>
             </li>
             <li>
-              Forbidden Lemon<br>- $19.99, ??? cal.
+              Forbidden Lemon<br>- <span class="menu-price" data-base="19.99"></span>, ??? cal.
               <button class="order-btn" onclick="addToCart('Forbidden Lemon', 19.99)">Add to Cart</button>
             </li>
             <li>
-              Lemon³ (Lemon Cubed)<br>- $16.99, 300 cal.
+              Lemon³ (Lemon Cubed)<br>- <span class="menu-price" data-base="16.99"></span>, 300 cal.
               <button class="order-btn" onclick="addToCart('Lemon³ (Lemon Cubed)', 16.99)">Add to Cart</button>
             </li>
           </ul>
@@ -74,6 +73,8 @@
         });
       document.addEventListener("DOMContentLoaded", function() {
         updateCartCount();
+        if (typeof updateAllMenuPrices === "function") updateAllMenuPrices();
+        // If your function is called updateMenuPrices, use that instead
       });
     </script>
   </body>
