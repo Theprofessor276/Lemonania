@@ -10,7 +10,7 @@ const EMAILJS_TEMPLATE = "template_bjwslao";
 const EMAILJS_PUBLIC_KEY = "MPEttrKFI6fFs8iNx";
 const EMAILJS_TEMPLATE_VERIFIED = "template_1zqrydx";
 // Place this after your other constants (e.g., after LS_KEY_CURRENT)
-const EULA_VERSION = "2024-06-21"; // Update this string whenever the EULA changes
+const EULA_VERSION = "2024-06-22"; // Update this string whenever the EULA changes
 (function loadCouponCodes() {
   // Only load if not already loaded
   if (typeof window.COUPON_CODES === "undefined") {
