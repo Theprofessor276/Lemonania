@@ -1293,49 +1293,9 @@ function applyCoupon() {
     updateCheckoutTotal();
     return;
   }
-  else if (code.toLowerCase() === "sans") {
-        info.innerHTML = `<span class="error" style="font-family: 'Comic Sans MS', 'Comic Sans', cursive;">heh. sorry, kid. i'm too buzy taking a nap to apply that coupon.<br>maybe next time.</span>`;
-        return;
-  }
   else if (code.toLowerCase() === "lemon") {
     info.innerHTML = `<span class="error" style="font-family: 'lemon'">Nice try but no dice</span>`
    return;
-  }
-  else if (code.toLowerCase() === "undyne") {
-      info.innerHTML = `<span class="error" style="font-family: Arial Black, Arial, sans-serif; color:#1976d2; font-weight:bold;">WHAT?! YOU THINK YOU CAN JUST USE ANY COUPON YOU WANT?! NOT ON MY WATCH!</span>`;
-      return;
-  }
-  else if (code.toLowerCase() === "alphys") {
-      info.innerHTML = `<span class="error" style="font-family: Verdana, Arial, sans-serif; color:#ffb347;">um, s-sorry! that coupon code doesn't, uh, work... b-but you can try another one if you want!!</span>`;
-      return;
-  }
-  else if (code.toLowerCase() === "mettaton") {
-      info.innerHTML = `<span class="error" style="font-family: 'Arial', 'Helvetica', sans-serif; color:#e91e63; font-weight:bold; letter-spacing:2px;">OOOH YES! THAT COUPON CODE IS QUITE FABULOUS ENOUGH FOR THIS SHOW BUT UNFORTUNATELY IT DOESN'T WORK TRY AGAIN DARLING</span>`;
-      return;
-  }
-  else if (code.toLowerCase() === "asgore") {
-      info.innerHTML = `<span class="error" style="font-family: 'Times New Roman', Times, serif; color:#795548;">I'm sorry, my child. This coupon cannot be accepted. But please, do not lose hope.</span>`;
-      return;
-  }
-  else if (code.toLowerCase() === "toriel") {
-      info.innerHTML = `<span class="error" style="font-family: 'Georgia', serif; color:#a0522d;">Hello, dear. That coupon code is not valid. Would you like some pie instead?</span>`;
-      return;
-  }
-  else if (code.toLowerCase() === "susie") {
-      info.innerHTML = `<span class="error" style="font-family: Impact, Charcoal, sans-serif; color:#8e24aa;">huh? coupon? pfft. nice try, nerd.</span>`;
-      return;
-  }
-  else if (code.toLowerCase() === "ralsei") {
-      info.innerHTML = `<span class="error" style="font-family: 'Comic Sans MS', 'Comic Sans', cursive; color:#43a047;">Oh! Um, sorry... That coupon doesn't seem to work. But don't give up!</span>`;
-      return;
-  }
-  else if (code.toLowerCase() === "lancer") {
-      info.innerHTML = `<span class="error" style="font-family: 'Comic Sans MS', 'Comic Sans', cursive; color:#1565c0;">Nyeh heh heh! That coupon code is as fake as my dad's mustache!</span>`;
-      return;
-  }
-    else if (code.toLowerCase() === "papyrus") {
-      info.innerHTML = `<span class="error" style="font-family: 'Papyrus', cursive; letter-spacing:1px; font-weight:bold;">NYEH HEH HEH! NICE TRY, HUMAN! BUT THIS COUPON IS TOO GREAT FOR THIS WEBSITE TO HANDLE!</span>`;
-      return;
   }
     else if (code.toLowerCase() === "fred") {
     info.innerHTML = `<span class="error" style="font-family: 'lemon'">what is that your name, why are you trying that?</span>`
@@ -1391,10 +1351,10 @@ else if (
   if (c.includes("allen") || c.includes("allan")) {
     info.innerHTML = `<span class="error">What are you, my dad?</span>`;
   } else if (c.includes("zackary") || c.includes("zachery")) {
-    info.innerHTML = `<span class="error">You tried the full name, huh? Nice effort. Still no discount and its not even my full name try harder you even misspelled it I dont know how you could do that as ist right under neath this box</span>`;
+    info.innerHTML = `<span class="error">no</span>`;
   }
   else if (c.includes("zachary")){
-  info.innerHTML = `<span class="error">You tried the full name, huh? Nice effort. Still no discount and its not even my full name try harder.</span>`;
+  info.innerHTML = `<span class="error">no</span>`;
 
   }
    else {
