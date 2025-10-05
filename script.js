@@ -118,28 +118,34 @@ function renderAccountArea() {
     if (!document.getElementById('accountArea')) return;
 document.getElementById('accountArea').innerHTML = `
   <h2>Login or Register</h2>
-  <form class="account-form" id="accountForm" onsubmit="return false">
-    <label for="username">Username:</label>
-    <input type="text" id="username" maxlength="24" required>
-    <label for="email">Email:</label>
-    <input type="email" id="email" maxlength="80" required>
-    <label for="password">Password:</label>
-    <input type="password" id="password" maxlength="32" required>
-    <div style="margin:0.7em 0; display:flex; align-items:flex-start; gap:0.7em; flex-wrap:wrap; max-width: 100%;">
-      <input type="checkbox" id="eulaAgree" class="lemon-checkbox" required style="margin-top:0.18em;">
-      <label for="eulaAgree" style="line-height:1.4; font-weight:bold; color:#222; flex:1 1 0; min-width:0;">
-        I agree to the
-        <a href="eula.html" target="_blank" style="color:#6c2eb7; text-decoration:underline; font-weight:bold;">
-          Lemonania End User License Agreement
-        </a>
-      </label>
-    </div>
-    <div style="display:flex; gap:0.5em;">
-      <button type="button" onclick="registerUser()">Register</button>
-      <button type="button" onclick="loginUser()">Login</button>
-    </div>
-    <div id="accountMsg"></div>
-  </form>
+<form class="account-form" id="accountForm" onsubmit="return false">
+  <label for="username">Username:</label>
+  <input type="text" id="username" maxlength="24" required>
+
+  <label for="email">Email:</label>
+  <input type="email" id="email" maxlength="80" required>
+
+  <label for="password">Password:</label>
+  <input type="password" id="password" maxlength="32" required>
+
+<div class="eula-row">
+  <label for="eulaAgree">
+    I agree to the
+    <a href="eula.html" target="_blank">Lemonania EULA</a>
+  </label>
+  <input type="checkbox" id="eulaAgree" class="lemon-checkbox" required>
+  <span class="checkbox-ui" aria-hidden="true"></span>
+</div>
+
+
+  <div class="form-actions">
+    <button type="button" onclick="registerUser()">Register</button>
+    <button type="button" onclick="loginUser()">Login</button>
+  </div>
+
+  <div id="accountMsg"></div>
+</form>
+
 `;
 } else {
     const u = getUser(user);
@@ -404,6 +410,7 @@ window.loginUser = function() {
   <span class="error">The Lemonania EULA has been updated. Please agree to the new terms to continue.</span>
   <div style="margin:0.7em 0; display:flex; align-items:center; gap:0.5em;">
     <input type="checkbox" id="eulaAgreeLogin" class="lemon-checkbox" required>
+    <span class="checkbox-ui" aria-hidden="true"></span>
     <label for="eulaAgreeLogin" style="line-height:1.4;">
       I agree to the <a href="eula.html" target="_blank">Lemonania End User License Agreement</a>
     </label>
@@ -465,7 +472,8 @@ window.loginUser = function() {
     msg.innerHTML = `
       <span class="error">The Lemonania EULA has been updated. Please agree to the new terms to continue.</span>
       <div style="margin:0.5em 0;">
-        <input type="checkbox" id="eulaAgreeLogin" required>
+  <input type="checkbox" id="eulaAgreeLogin" required>
+  <span class="checkbox-ui" aria-hidden="true"></span>
         <label for="eulaAgreeLogin">
           I agree to the <a href="eula.html" target="_blank">Lemonania End User License Agreement</a>
         </label>

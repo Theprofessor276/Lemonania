@@ -384,33 +384,130 @@ img {
     padding: 0.4vw 1vw;
   }
 }
+.eula-row {
+  display: inline-flex; /* inline-flex prevents flexbox from breaking into a new line */
+  align-items: center;  /* centres the checkbox and text vertically */
+  gap: 0.5em;
+  margin: 0.7em 0;
+  position: relative; /* needed for absolute positioning of custom checkbox */
+  padding-right: 2.2rem; /* slightly closer inset so the visual sits nearer the label */
+}
+  /* Prevent the label in the eula row from rendering as a white block */
+  .eula-row label {
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    display: inline-block;
+    line-height: 1.25;
+    flex: 1 1 auto; /* allow label to take remaining space but keep transparent */
+  }
+
+.eula-row input[type="checkbox"],
+.eula-row input[type="radio"] {
+    /* keep the native control accessible but hide its default UI for a custom look */
+    position: absolute;
+    right: 1.6rem; /* move native input slightly closer to the label to match visual */
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    opacity: 0;
+    margin: 0;
+    z-index: 2; /* sit above the visual so clicks hit the native input */
+  }
+
+/* Visual lemon-themed box that mirrors the native checkbox state */
+.eula-row .checkbox-ui {
+  position: absolute;
+  right: 1.5rem; /* pull the visual closer to the label */
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(180deg,#fff8b0 0%, #ffd54f 70%);
+  border: 3px solid #f2c200; /* thicker yellow edge for Lemonania look */
+  box-shadow: 0 0 0.12em #ffd70055, 0 1px 0 rgba(255,255,255,0.6) inset;
+  display: inline-block;
+  z-index: 1;
+}
+.eula-row .checkbox-ui::after {
+  content: '';
+  display: block;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  line-height: 20px;
+  font-size: 13px;
+}
+.eula-row input[type="checkbox"]:checked + .checkbox-ui {
+  background: linear-gradient(180deg,#fff06b 0%, #ffd200 70%);
+  transform: translateY(-50%) scale(0.98);
+}
+.eula-row input[type="checkbox"]:checked + .checkbox-ui::after {
+  content: '🍋';
+}
+.eula-row input[type="checkbox"]:focus + .checkbox-ui {
+  outline: 2px solid #32CD32;
+  box-shadow: 0 0 0.28em #32cd3244;
+}
+
 .lemon-checkbox {
-  width: 404px;
-  height: 404px;
+  width: 18px;
+  height: 18px;
   accent-color: #FFD700;
   cursor: pointer;
-  margin: 0;
-  border-radius: 404px;
-  box-shadow: 0 0 0.15em #ffd70055;
-  transition: box-shadow 0.2s;
+  border-radius: 50%;
+  transition: box-shadow 0.18s, transform 0.08s;
   flex-shrink: 0;
   display: inline-block;
   vertical-align: middle;
-  -webkit-border-radius: 404px;
-  -moz-border-radius: 404px;
-  -ms-border-radius: 404px;
-  -o-border-radius: 404px;
+  border: 1px solid rgba(0,0,0,0.08);
+  background: linear-gradient(#fff,#fffbe8 60%);
+  box-shadow: 0 0 0.12em #ffd70055, 0 1px 0 rgba(255,255,255,0.6) inset;
 }
+
+.eula-row label {
+  line-height: 1.3;
+  font-weight: bold;
+  color: #222;
+}
+
+.eula-row a {
+  color: #6c2eb7;
+  text-decoration: underline;
+  font-weight: bold;
+}
+
 .lemon-checkbox:focus {
   outline: 2px solid #32CD32;
   box-shadow: 0 0 0.25em #32cd3244;
 }
+
+/* Ensure account form eula elements don't get a white block background */
+.account-form .eula-row,
+.account-form .eula-row label {
+  background: transparent !important;
+}
+.account-form .eula-row label {
+  display: inline-block !important;
+  width: auto !important;
+  padding: 0 !important;
+}
+.account-form .eula-row input[type="checkbox"],
+.account-form .eula-row input[type="radio"] {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
 @media (max-width: 500px) {
   .account-form .eula-row {
     flex-wrap: wrap !important;
     align-items: flex-start !important;
   }
 }
+
 .form-wrapper {
   background-color: #fff8c2;
   border: 2px solid #ffec88;

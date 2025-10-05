@@ -20,7 +20,13 @@
       box-shadow: 0 0.1em 1em #ffd70030;
     }
     .account-form label { font-weight: bold; }
-    .account-form input, .account-form button {
+    /* Only make text-like inputs full-width; leave checkboxes/radios inline */
+    .account-form input[type="text"],
+    .account-form input[type="email"],
+    .account-form input[type="password"],
+    .account-form input[type="file"],
+    .account-form textarea,
+    .account-form select {
       padding: 0.6em 1em;
       margin-bottom: 1em;
       border-radius: 0.5em;
@@ -32,8 +38,31 @@
       width: 100%;
       box-sizing: border-box;
     }
-    .account-form button { background: #FFD700; color: #282828; font-weight: bold; margin-top: 0.5em;}
+    /* Keep text inputs and buttons full width; buttons styled for prominence */
+    .account-form button {
+      padding: 0.7em 1em;
+      display: block;
+      width: 100%;
+      border-radius: 0.6em;
+      border: none;
+      box-sizing: border-box;
+      cursor: pointer;
+      font-weight: bold;
+      background: #FFD700;
+      color: #282828;
+      margin-top: 0.5em;
+    }
     .account-form button:hover { background: #FFDEAD; }
+  /* Checkbox placed to the right visually using order in the eula-row */
+  .eula-row { display:flex; align-items:center; gap:0.6em; }
+  .eula-row label { order: 1; margin: 0; flex: 1 1 auto; }
+  /* push the checkbox to the far right */
+  .eula-row input[type="checkbox"] { order: 2; margin-left: auto; margin-right: 0; }
+  /* Buttons side-by-side on wide screens, stacked on small screens */
+  .form-actions { display:flex; gap:0.6em; }
+  .form-actions button { flex:1 1 0; }
+  .account-form button { background: #FFD700; color: #282828; font-weight: bold; margin-top: 0.5em;}
+  .account-form button:hover { background: #FFDEAD; }
     .account-area { margin-top: 2em; }
     .pfp-img {
       width: 96px; height: 96px; border-radius: 50%;
