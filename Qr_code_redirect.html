@@ -12,21 +12,20 @@
   </head>
   <body>
     <div id="boc">
-  <div id="lemonania-header"></div>
-    <!-- the lemonania header div renders the header including the nav banner lemon point display and account button -->
+  <!-- Header intentionally removed for QR redirect landing page. -->
+  <!-- This page is a focused landing spot after scanning a Lemonania QR code. -->
 
       <main>
-        <h1>Page Name</h1>
-        <blockquote>Page description</blockquote>
+        <h1>Thanks for scanning our QR code!</h1>
+        <!-- Short friendly message thanking the user -->
+        <p>We appreciate you stopping by Lemonania. To continue, please sign in to your account so we can save your points and orders.</p>
+
+        <!-- Accessible link styled as a button that leads to the sign-in page -->
+        <p>
+          <a href="account.html" class="qr-signin-btn" role="button" aria-label="Go to sign in page" style="display:inline-block;padding:12px 18px;background:#ffd54f;color:#000;border-radius:8px;text-decoration:none;font-weight:700;">Go to Sign In</a>
+        </p>
       </main>
-      <div class="box2">
-        <section class="s1">
-          <p>Text</p>
-        </section>
-        <section class='s2'>
-          <p>Text</p>
-        </section>
-      </div>
+
         <footer>
   © 2027 Lemonania Inc. —
   <a href="https://github.com/TheProfessor276/Lemonania" target="_blank" rel="noopener noreferrer">
@@ -40,11 +39,7 @@
     document.addEventListener("DOMContentLoaded", function() {
       updateLemonPointsDisplay();
     });
-    fetch('header.html')
-      .then(r => r.text())
-      .then(html => {
-        document.getElementById('lemonania-header').innerHTML = html;
-      });
+    // Header injection removed for this focused QR landing page.
   </script>
   </body>
 </html>

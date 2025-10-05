@@ -121,7 +121,7 @@ document.getElementById('accountArea').innerHTML = `
   <form class="account-form" id="accountForm" onsubmit="return false">
     <label for="username">Username:</label>
     <input type="text" id="username" maxlength="24" required>
-    <label for="email">Email (for fake verification):</label>
+    <label for="email">Email:</label>
     <input type="email" id="email" maxlength="80" required>
     <label for="password">Password:</label>
     <input type="password" id="password" maxlength="32" required>
