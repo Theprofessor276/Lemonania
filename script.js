@@ -329,6 +329,124 @@ function getUserCartCount(username) {
   } catch { return 0; }
 }
 
+// --- Lemonania Bank Helpers ---
+function getBankKey(username) { return `lemonBank__${username}`; }
+function getBankTxKey(username) { return `lemonBankTx__${username}`; }
+function getBankBalance(username) {
+  try { return parseFloat(localStorage.getItem(getBankKey(username)) || '0') || 0; }
+  catch { return 0; }
+}
+function setBankBalance(username, amount) {
+  localStorage.setItem(getBankKey(username), Number(amount).toFixed(2));
+}
+function getBankTransactions(username) {
+  try { return JSON.parse(localStorage.getItem(getBankTxKey(username))) || []; }
+  catch { return []; }
+}
+function addBankTransaction(username, tx) {
+  const txs = getBankTransactions(username);
+  txs.unshift(tx); // newest first
+  localStorage.setItem(getBankTxKey(username), JSON.stringify(txs.slice(0, 200))); // cap history
+}
+
+// --- Loans and interest ---
+function createLoan(username, principal, days = 30) {
+  // interest rate per loan (annualized base) - small demo default
+  const baseAnnualRate = 0.12; // 12% annual
+  const userObj = getUser(username);
+  const isCursed = !!(userObj && userObj.popPopCursed);
+  // pop-pop curse doubles the interest
+  const annualRate = isCursed ? baseAnnualRate * 2 : baseAnnualRate;
+  // simple interest for the duration
+  const interest = +(principal * (annualRate * (days/365))).toFixed(2);
+  const totalOwed = +(principal + interest).toFixed(2);
+  // add principal to balance
+  const bal = getBankBalance(username);
+  setBankBalance(username, +(bal + principal).toFixed(2));
+  const loan = {
+    id: 'loan_' + Date.now() + '_' + Math.floor(Math.random()*1000),
+    principal: +principal,
+    interest: +interest,
+    totalOwed: +totalOwed,
+    days: days,
+    created: new Date().toISOString(),
+    paid: false
+  };
+  addBankTransaction(username, { type: 'loan', amount: principal, desc: `Loan issued (owed ${formatPrice(totalOwed)})`, date: loan.created, meta: loan });
+  return loan;
+}
+
+function repayLoan(username, loanId, amount) {
+  const txs = getBankTransactions(username);
+  const loanIndex = txs.findIndex(t => t.type === 'loan' && t.meta && t.meta.id === loanId);
+  if (loanIndex === -1) return false;
+  const loan = txs[loanIndex].meta;
+  const owed = loan.totalOwed - (loan.paidAmount || 0);
+  const payment = Math.min(amount, owed);
+  // reduce balance
+  const bal = getBankBalance(username);
+  if (payment > bal) return false; // insufficient funds
+  setBankBalance(username, +(bal - payment).toFixed(2));
+  // record payment
+  addBankTransaction(username, { type: 'repayment', amount: payment, desc: `Repayment toward ${loan.id}`, date: new Date().toISOString(), meta: { loanId } });
+  loan.paidAmount = (loan.paidAmount || 0) + payment;
+  if (loan.paidAmount >= loan.totalOwed) loan.paid = true;
+  // update the original loan tx meta
+  txs[loanIndex].meta = loan;
+  localStorage.setItem(getBankTxKey(username), JSON.stringify(txs));
+  // Adjust credit score positively for on-time repayment portion
+  try { adjustCreditOnRepayment(username, loanId, payment); } catch (e) {}
+  return true;
+}
+
+// --- Credit score system and loan application ---
+function getCreditKey(username) { return `lemonCredit__${username}`; }
+function getCreditScore(username) {
+  try { return parseInt(localStorage.getItem(getCreditKey(username)) || '600', 10); } catch { return 600; }
+}
+function setCreditScore(username, score) {
+  const s = Math.max(300, Math.min(850, Math.round(score)));
+  localStorage.setItem(getCreditKey(username), String(s));
+}
+
+// Evaluate loan application object and return an approval object
+// application: { income, expenses, purpose, amount, termMonths, employmentYears }
+function evaluateLoanApplication(username, application) {
+  const baseScore = getCreditScore(username);
+  // simple affordability: disposable = income - expenses
+  const disposable = Math.max(0, (application.income || 0) - (application.expenses || 0));
+  // debt-to-income ratio (approx)
+  const dti = disposable > 0 ? (application.amount / (disposable * Math.max(1, application.termMonths/12))) : Infinity;
+  // score adjustments
+  let score = baseScore;
+  if (application.employmentYears < 1) score -= 20;
+  if (application.purpose && application.purpose.toLowerCase().includes('business')) score += 5;
+  if (dti > 1) score -= 50; else if (dti > 0.5) score -= 20; else score += 10;
+  // small randomness to simulate underwriting
+  score += Math.floor((Math.random() - 0.5) * 10);
+  score = Math.max(300, Math.min(850, score));
+
+  // approval rules
+  const approved = score >= 580 && dti < 1.2 && application.amount <= Math.max(500, disposable * 6);
+  const maxAllowed = approved ? Math.min(application.amount, Math.max(500, disposable * 6)) : Math.max(0, Math.floor(Math.max(500, disposable * 2)));
+  return { approved: !!approved, score: score, maxAllowed: maxAllowed, baseScore };
+}
+
+// Adjust credit score on repayment (positive) or default/late (negative)
+function adjustCreditOnRepayment(username, loanId, paidAmount) {
+  const u = username; if (!u) return;
+  let score = getCreditScore(u);
+  score += Math.min(12, Math.floor(paidAmount / 50)); // small improvement
+  setCreditScore(u, score);
+}
+function adjustCreditOnLate(username, loanId, severity=1) {
+  const u = username; if (!u) return;
+  let score = getCreditScore(u);
+  score -= Math.min(40, 10 * severity);
+  setCreditScore(u, score);
+}
+
+
 // --- Per-user data migration (for first login after system added) ---
 function migrateUserDataToThisUser(username) {
   const keys = ["cart", "lemonPoints", "myRewards", "usedRewards"];
@@ -370,22 +488,22 @@ window.registerUser = function() {
     msg.innerHTML = '<span class="error">You must agree to the Lemonania EULA to register.</span>';
     return;
   }
-
-let users = getAllUsers();
-if (users[username]) { msg.innerHTML = '<span class="error">Username already exists.</span>'; return; }
-if (Object.values(users).some(u => u.email === email)) { msg.innerHTML = '<span class="error">Email already used.</span>'; return; }
-let code = Math.floor(100000 + Math.random()*900000).toString();
-users[username] = { email, password, verified:false, code, pfp:null, eulaAgreed: EULA_VERSION };
-saveAllUsers(users);
-  // --- Pop Pop Forbidden Names Check (redirect to error page instantly) ---
+  // Validation BEFORE writing the user to storage
   const forbiddenNames = [/pop[\s_]?pop/i];
   if (forbiddenNames.some(re => re.test(username))) {
+    // Prevent account creation and redirect to error page
     window.location.href = "error.html?reason=poppop";
     return;
   }
   if (!username || !email || !password) { msg.innerHTML = '<span class="error">Fill all fields.</span>'; return; }
   if (!/^[a-zA-Z0-9_]+$/.test(username)) { msg.innerHTML = '<span class="error">Username letters, numbers, _ only.</span>'; return; }
   if (username.length < 3 || username.length > 24) { msg.innerHTML = '<span class="error">Username 3-24 chars.</span>'; return; }
+  let users = getAllUsers();
+  if (users[username]) { msg.innerHTML = '<span class="error">Username already exists.</span>'; return; }
+  if (Object.values(users).some(u => u.email === email)) { msg.innerHTML = '<span class="error">Email already used.</span>'; return; }
+  let code = Math.floor(100000 + Math.random()*900000).toString();
+  users[username] = { email, password, verified:false, code, pfp:null, eulaAgreed: EULA_VERSION };
+  saveAllUsers(users);
   msg.innerHTML = 'Sending verification email...';
   sendVerificationEmail(email, username, code, ok => {
     if (ok) {
@@ -885,6 +1003,302 @@ function renderCart() {
 // --- Restore checkout() nav for cart.html ---
 function checkout() {
   window.location.href = "checkout.html";
+}
+
+// --- Payment routing ---
+function getSelectedPaymentMethod() {
+  const radios = document.getElementsByName('paymentMethod');
+  for (const r of radios) if (r.checked) return r.value;
+  return 'bank';
+}
+
+function initiatePayment() {
+  const method = getSelectedPaymentMethod();
+  if (method === 'bank') {
+    // Use the existing payNow flow which now offers bank usage
+    payNow();
+    return;
+  }
+  // For card/paypal/applepay, redirect to a payment page that shows unsupported
+  // We'll pass method as a query param so payment.html can show details
+  window.location.href = `payment.html?method=${encodeURIComponent(method)}`;
+}
+
+// --- Loan maintenance: due dates and late fees ---
+function processLoanLateFeesForUser(username) {
+  const txs = getBankTransactions(username);
+  let changed = false;
+  const now = new Date();
+  for (let t of txs) {
+    if (t.type === 'loan' && t.meta && !t.meta.paid) {
+      const loan = t.meta;
+      const created = new Date(loan.created);
+      const due = new Date(created.getTime() + (loan.days || 30) * 24*60*60*1000);
+      if (!loan.lastLateApplied && now > due) {
+        // Apply a one-time late fee of 5% of remaining owed
+        const overdue = loan.totalOwed - (loan.paidAmount || 0);
+        const lateFee = +(Math.max(0, overdue) * 0.05).toFixed(2);
+        loan.totalOwed = +(loan.totalOwed + lateFee).toFixed(2);
+        loan.lastLateApplied = new Date().toISOString();
+        addBankTransaction(username, { type: 'latefee', amount: lateFee, desc: `Late fee for ${loan.id}`, date: new Date().toISOString(), meta:{loanId: loan.id} });
+        try { adjustCreditOnLate(username, loan.id, 1); } catch (e) {}
+        changed = true;
+      }
+    }
+  }
+  if (changed) localStorage.setItem(getBankTxKey(username), JSON.stringify(txs));
+}
+
+function processAllUsersLoanLateFees() {
+  const users = getAllUsers();
+  for (const uname in users) {
+    processLoanLateFeesForUser(uname);
+  }
+}
+
+// Run loan maintenance once per page load (demo)
+try { processAllUsersLoanLateFees(); } catch (e) { /* ignore */ }
+
+// --- Simple Stock Market Module ---
+if (typeof window.LEMON_STOCKS === 'undefined') window.LEMON_STOCKS = {};
+function initStockMarket() {
+  const dayKey = 'lemonStockDay';
+  const lastDay = localStorage.getItem(dayKey);
+  const today = new Date().toISOString().slice(0,10);
+  if (!localStorage.getItem('lemonStocks')) {
+    const starter = {
+      AAPL: { price: 170, history: [], name: 'Apple Inc.' },
+      GOOGL: { price: 135, history: [], name: 'Alphabet' },
+      AMZN: { price: 130, history: [], name: 'Amazon' },
+      TSLA: { price: 220, history: [], name: 'Tesla' },
+      NFTZ: { price: 50, history: [], name: 'Lemon NFT (volatile)' }
+    };
+    localStorage.setItem('lemonStocks', JSON.stringify(starter));
+    localStorage.setItem(dayKey, today);
+  } else if (lastDay !== today) {
+    // new day market tick: random small movement
+    const stocks = JSON.parse(localStorage.getItem('lemonStocks'));
+    for (const s in stocks) {
+      // small daily movement
+      let change = (Math.random() * 0.06 - 0.03); // -3% .. +3%
+      // rare events
+      const r = Math.random();
+      if (r < 0.02) change += (Math.random() * 1.0 + 0.5); // +50%..+150% spike
+      else if (r < 0.03) change -= (Math.random() * 0.9 + 0.5); // -50%..-140% crash
+      // NFT downward bias
+      if (s === 'NFTZ') change -= 0.02; // -2% drift
+      stocks[s].price = Math.max(0.01, +(stocks[s].price * (1 + change)).toFixed(2));
+      stocks[s].history = stocks[s].history || [];
+      stocks[s].history.push({ date: today, price: stocks[s].price });
+      if (stocks[s].history.length > 60) stocks[s].history.shift();
+    }
+    localStorage.setItem('lemonStocks', JSON.stringify(stocks));
+    localStorage.setItem(dayKey, today);
+  }
+}
+initStockMarket();
+
+function getStocks() { return JSON.parse(localStorage.getItem('lemonStocks') || '{}'); }
+
+function buyStock(username, symbol, qty) {
+  if (!username) return false;
+  const stocks = getStocks();
+  const s = stocks[symbol]; if (!s) return false;
+  const cost = +(s.price * qty).toFixed(2);
+  const bal = getBankBalance(username);
+  if (bal < cost) return false;
+  setBankBalance(username, +(bal - cost).toFixed(2));
+  addBankTransaction(username, { type: 'stock-buy', amount: cost, desc: `Buy ${qty} ${symbol}`, date: new Date().toISOString(), meta:{symbol, qty, price: s.price} });
+  // portfolio stored in localStorage per user
+  const pfKey = `lemonStockPf__${username}`;
+  const pf = JSON.parse(localStorage.getItem(pfKey) || '{}');
+  pf[symbol] = (pf[symbol] || 0) + qty;
+  localStorage.setItem(pfKey, JSON.stringify(pf));
+  // NFT special: buying causes a pump proportional to qty
+  if (symbol === 'NFTZ') {
+    const stocksAll = getStocks();
+    stocksAll['NFTZ'].price = +(stocksAll['NFTZ'].price * (1 + Math.min(0.5, 0.02 * qty))).toFixed(2);
+    stocksAll['NFTZ'].history.push({ date: new Date().toISOString().slice(0,10), price: stocksAll['NFTZ'].price });
+    localStorage.setItem('lemonStocks', JSON.stringify(stocksAll));
+  }
+  return true;
+}
+
+function sellStock(username, symbol, qty) {
+  if (!username) return false;
+  const pfKey = `lemonStockPf__${username}`;
+  const pf = JSON.parse(localStorage.getItem(pfKey) || '{}');
+  if (!pf[symbol] || pf[symbol] < qty) return false;
+  const stocks = getStocks();
+  const s = stocks[symbol]; if (!s) return false;
+  const revenue = +(s.price * qty).toFixed(2);
+  const bal = getBankBalance(username);
+  setBankBalance(username, +(bal + revenue).toFixed(2));
+  addBankTransaction(username, { type: 'stock-sell', amount: revenue, desc: `Sell ${qty} ${symbol}`, date: new Date().toISOString(), meta:{symbol, qty, price: s.price} });
+  pf[symbol] -= qty; if (pf[symbol] <= 0) delete pf[symbol];
+  localStorage.setItem(pfKey, JSON.stringify(pf));
+  // NFT special: selling accelerates downward drift
+  if (symbol === 'NFTZ') {
+    const stocksAll = getStocks();
+    stocksAll['NFTZ'].price = +(stocksAll['NFTZ'].price * (1 - Math.min(0.7, 0.03 * qty))).toFixed(2);
+    stocksAll['NFTZ'].history.push({ date: new Date().toISOString().slice(0,10), price: stocksAll['NFTZ'].price });
+    localStorage.setItem('lemonStocks', JSON.stringify(stocksAll));
+  }
+  return true;
+}
+
+// Full-featured stock chart renderer for canvas
+// Supports compact mode (small inline charts) and full charts with axes, grid, area fill, and latest-price marker.
+function drawStockChart(canvas, history, options = {}) {
+  if (!canvas || !history || history.length === 0) return;
+  const opt = Object.assign({ compact: true, color: '#32CD32', grid: true, padding: 6 }, options);
+  const ctx = canvas.getContext('2d');
+  // High-DPI scaling
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = canvas.clientWidth || canvas.width || 120;
+  const cssH = canvas.clientHeight || canvas.height || 40;
+  canvas.width = Math.max(1, Math.floor(cssW * dpr));
+  canvas.height = Math.max(1, Math.floor(cssH * dpr));
+  canvas.style.width = cssW + 'px';
+  canvas.style.height = cssH + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const w = cssW, h = cssH;
+  ctx.clearRect(0,0,w,h);
+
+  // Extract numeric prices and dates
+  const data = history.map(pt => ({ date: pt.date, price: Number(pt.price) }));
+  const prices = data.map(d => d.price);
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  const range = Math.max(0.0001, max - min);
+
+  // padding: more room for labels when not compact
+  const pad = opt.compact ? opt.padding : 28;
+  const left = opt.compact ? 2 : pad;
+  const right = opt.compact ? 2 : pad;
+  const top = 6;
+  const bottom = opt.compact ? 6 : 18;
+
+  const chartW = w - left - right;
+  const chartH = h - top - bottom;
+
+  // grid lines (horizontal)
+  if (opt.grid) {
+    ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+    ctx.lineWidth = 1;
+    const lines = opt.compact ? 2 : 4;
+    for (let i = 0; i <= lines; i++) {
+      const y = top + (i/lines) * chartH;
+      ctx.beginPath(); ctx.moveTo(left, y); ctx.lineTo(left + chartW, y); ctx.stroke();
+    }
+  }
+
+  // compute points
+  const pts = data.map((d, i) => {
+    const x = left + (i / Math.max(1, data.length - 1)) * chartW;
+    const y = top + (1 - (d.price - min) / range) * chartH;
+    return { x, y, d };
+  });
+
+  // area fill
+  ctx.beginPath();
+  for (let i = 0; i < pts.length; i++) {
+    const p = pts[i];
+    if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+  }
+  // down to baseline
+  const last = pts[pts.length-1];
+  const first = pts[0];
+  ctx.lineTo(last.x, top + chartH);
+  ctx.lineTo(first.x, top + chartH);
+  ctx.closePath();
+  const grad = ctx.createLinearGradient(0, top, 0, top + chartH);
+  grad.addColorStop(0, hexToRgba(opt.color, 0.22));
+  grad.addColorStop(1, hexToRgba(opt.color, 0.02));
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // stroke line
+  ctx.beginPath();
+  for (let i = 0; i < pts.length; i++) {
+    const p = pts[i];
+    if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+  }
+  ctx.strokeStyle = opt.color;
+  ctx.lineWidth = opt.compact ? 1.6 : 2.4;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  // latest price marker
+  const lp = pts[pts.length-1];
+  ctx.beginPath();
+  ctx.fillStyle = '#fff';
+  ctx.strokeStyle = opt.color;
+  ctx.lineWidth = 1.6;
+  ctx.arc(lp.x, lp.y, opt.compact ? 3 : 4, 0, Math.PI*2);
+  ctx.fill(); ctx.stroke();
+
+  // price label for latest price (when not compact, show to the right)
+  if (!opt.compact) {
+    const txt = formatPrice(lp.d.price);
+    ctx.font = '12px sans-serif';
+    ctx.fillStyle = '#222';
+    const txtW = ctx.measureText(txt).width;
+    const tx = Math.min(w - right - txtW - 6, lp.x + 8);
+    const ty = Math.max(top + 12, lp.y - 6);
+    // background pill
+    ctx.fillStyle = hexToRgba('#fff', 0.9);
+    const padX = 6, padY = 4;
+    ctx.fillRect(tx - padX/2, ty - 12, txtW + padX, 16);
+    ctx.fillStyle = '#111';
+    ctx.fillText(txt, tx + 2, ty);
+  }
+
+  // y-axis labels for non-compact
+  if (!opt.compact) {
+    ctx.fillStyle = '#333';
+    ctx.font = '11px sans-serif';
+    const ticks = 3;
+    for (let i = 0; i <= ticks; i++) {
+      const v = min + ((ticks - i)/ticks) * range;
+      const y = top + (i/ticks) * chartH;
+      ctx.fillText(formatNumericPrice(v), 6, y + 4);
+    }
+  }
+}
+
+// Helper: format numeric price for axis (no currency symbol)
+function formatNumericPrice(n) {
+  if (Math.abs(n) >= 1000) return Math.round(n).toString();
+  return Number(n).toFixed(2);
+}
+
+// Helper: hex color to rgba string
+function hexToRgba(hex, alpha) {
+  try {
+    const h = hex.replace('#','');
+    const bigint = parseInt(h.length === 3 ? h.split('').map(c=>c+c).join('') : h, 16);
+    const r = (bigint >> 16) & 255; const g = (bigint >> 8) & 255; const b = bigint & 255;
+    return `rgba(${r},${g},${b},${alpha})`;
+  } catch(e) { return `rgba(50,205,50,${alpha})`; }
+}
+
+// Backwards-compatible sparkline wrapper (compact)
+function drawSparkline(canvas, data) {
+  // Accept either numeric array or history array of {date, price}
+  const history = data.map ? data.map(d => (typeof d === 'number' ? { date: '', price: d } : { date: d.date || '', price: d.price })) : [];
+  drawStockChart(canvas, history, { compact: true, color: '#32CD32' });
+}
+
+function drawAllSparklines() {
+  document.querySelectorAll('[data-stock]').forEach(el => {
+    const sym = el.getAttribute('data-stock');
+    const stocks = getStocks();
+    const s = stocks[sym];
+    const canvas = el.querySelector('canvas');
+    if (canvas && s && s.history) drawStockChart(canvas, s.history.slice(-60), { compact: canvas.clientWidth <= 140, color: '#32CD32' });
+  });
 }
 
 // === Pop Pop Curse Utilities ===
@@ -1448,6 +1862,24 @@ function payNow() {
   }
   total = Math.max(0, baseTotal - discount);
 
+  // --- Lemonania Bank: offer to pay with internal bank balance if user is signed in ---
+  let paidWithBank = false;
+  const currentUser = getCurrentUser();
+  if (currentUser) {
+    try {
+      const bal = getBankBalance(currentUser);
+      // If they have enough, offer to pay from bank
+      if (typeof bal === 'number' && bal >= total && total > 0) {
+        if (confirm(`You have ${formatPrice(bal)} in your Lemonania Bank. Pay ${formatPrice(total)} from your bank balance now?`)) {
+          // debit bank and record transaction
+          setBankBalance(currentUser, +(bal - total).toFixed(2));
+          addBankTransaction(currentUser, { type: 'debit', amount: total, desc: 'Purchase', date: new Date().toISOString() });
+          paidWithBank = true;
+        }
+      }
+    } catch (e) { /* ignore bank failures, fallback to normal payment */ }
+  }
+
   // pop pop curse: All points erased, rewards removed, and lemon points can't be gained
   if (isPopPopCursed()) {
     // Block any point gain logic here
@@ -1456,11 +1888,18 @@ function payNow() {
     updateLemonPointsDisplay();
   }
 
-  // Actually process payment (for demo, just clear cart and show message)
+  // Actually process payment
   saveCart({});
   window._lemonAppliedCoupon = null;
-  alert(`Thank you for your order! You paid ${formatPrice(total)}.`);
+  if (paidWithBank) {
+    alert(`Thank you for your order! ${formatPrice(total)} was deducted from your Lemonania Bank.`);
+  } else {
+    alert(`Thank you for your order! You paid ${formatPrice(total)}.`);
+  }
   setLemonPoints(getLemonPoints() + total); // Add total to Lemon Points (if not cursed)
+  // Update any header/account UI that shows bank/balance
+  try { renderAccountHeaderBtn(); } catch(e) {}
+  try { renderRewardArea(); } catch(e) {}
   window.location.href = "index.html";
 
 }

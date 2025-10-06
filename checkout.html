@@ -65,7 +65,14 @@
         <div id="discountInfo"></div>
       </div>
       <h3 id="totalDisplay"></h3>
-      <button class="pay-btn" onclick="payNow()">Pay Now</button>
+      <div style="margin-top:1em;">
+        <label><b>Payment Method:</b></label><br>
+        <label><input type="radio" name="paymentMethod" value="bank" checked> Lemon Bank</label>
+        <label style="margin-left:1em;"><input type="radio" name="paymentMethod" value="card"> Card</label>
+        <label style="margin-left:1em;"><input type="radio" name="paymentMethod" value="paypal"> PayPal</label>
+        <label style="margin-left:1em;"><input type="radio" name="paymentMethod" value="applepay"> Apple Pay</label>
+      </div>
+      <button class="pay-btn" onclick="initiatePayment()">Pay Now</button>
     </main>
     <footer>
   © 2027 Lemonania Inc. — 

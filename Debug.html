@@ -147,6 +147,27 @@
           <div id="debug-all-storage"></div>
         </div>
 
+        <div class="debug-section">
+          <h2>Bank Account Editor</h2>
+          <div class="debug-input-row">
+            <span class="debug-label">Username:</span>
+            <input id="dbgBankUser" type="text">
+            <span class="debug-label">Amount:</span>
+            <input id="dbgBankAmt" type="number" step="0.01" value="10">
+          </div>
+          <button class="debug-btn" onclick="dbgSetBank()">Set Balance</button>
+          <button class="debug-btn" onclick="dbgAddBank()">Add</button>
+          <button class="debug-btn" onclick="dbgSubBank()">Subtract</button>
+          <div id="debug-bank-result"></div>
+        </div>
+
+        <div class="debug-section">
+          <h2>Stock Market</h2>
+          <button class="debug-btn" onclick="(function(){ initStockMarket(); alert('Stock market ticked/initialized.'); })()">Tick Market / Init</button>
+          <button class="debug-btn" onclick="showUserStocksDebug()">Show Current User Portfolio</button>
+          <div id="debug-stock-output"></div>
+        </div>
+
       </main>
       <footer>Created By Alan Zachary O'Keefe &copy; 2027</footer>
     </div>
@@ -387,6 +408,36 @@
         else
           localStorage.setItem('myRewards', JSON.stringify(rewards));
         document.getElementById('debug-rewards-table').innerHTML = '<b>Test rewards granted.</b>';
+      }
+      // --- Bank debug helpers ---
+      function dbgSetBank() {
+        const u = document.getElementById('dbgBankUser').value.trim();
+        const a = parseFloat(document.getElementById('dbgBankAmt').value) || 0;
+        if (!u) { document.getElementById('debug-bank-result').innerText = 'Enter username'; return; }
+        localStorage.setItem('lemonBank__' + u, Number(a).toFixed(2));
+        document.getElementById('debug-bank-result').innerText = `Set ${u} balance to ${a}`;
+      }
+      function dbgAddBank() {
+        const u = document.getElementById('dbgBankUser').value.trim();
+        const a = parseFloat(document.getElementById('dbgBankAmt').value) || 0;
+        if (!u) { document.getElementById('debug-bank-result').innerText = 'Enter username'; return; }
+        const cur = parseFloat(localStorage.getItem('lemonBank__' + u) || '0');
+        localStorage.setItem('lemonBank__' + u, Number(cur + a).toFixed(2));
+        document.getElementById('debug-bank-result').innerText = `Added ${a} to ${u}. New ${ (cur+a).toFixed(2) }`;
+      }
+      function dbgSubBank() {
+        const u = document.getElementById('dbgBankUser').value.trim();
+        const a = parseFloat(document.getElementById('dbgBankAmt').value) || 0;
+        if (!u) { document.getElementById('debug-bank-result').innerText = 'Enter username'; return; }
+        const cur = parseFloat(localStorage.getItem('lemonBank__' + u) || '0');
+        localStorage.setItem('lemonBank__' + u, Number(cur - a).toFixed(2));
+        document.getElementById('debug-bank-result').innerText = `Subtracted ${a} from ${u}. New ${ (cur-a).toFixed(2) }`;
+      }
+      function showUserStocksDebug() {
+        const u = getCurrentUser();
+        if (!u) { document.getElementById('debug-stock-output').innerText = 'Not signed in'; return; }
+        const pf = JSON.parse(localStorage.getItem('lemonStockPf__' + u) || '{}');
+        document.getElementById('debug-stock-output').innerText = JSON.stringify(pf, null, 2);
       }
       function clearRewards() {
         const u = getCurrentUser();
