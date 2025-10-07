@@ -356,3 +356,7 @@
         showDebugUserStatus();
         showUserDebug();
       });
+      export function getBankBalance(username) {
+         const balance = localStorage.getItem('lemonBank__' + username);
+         return balance ? parseFloat(balance) : 0;
+}
