@@ -206,6 +206,7 @@ let currencySelector = `
           <li>Rewards: <b>${getMyRewards().length}</b></li>
           <li>Cart Items: <b>${getUserCartCount(user)}</b></li>
         </ul>
+        <a href="banking.html" class="navbtn">Lemon Bank & Loans</a><br>
       </div>
       <div id="accountMsg"></div>
     `;
