@@ -253,6 +253,14 @@ function renderMarket() {
 // smooth auto-update
 setInterval(renderMarket, 2000);
 document.addEventListener("DOMContentLoaded", renderMarket);
+document.addEventListener("DOMContentLoaded", function() {
+      updateLemonPointsDisplay();
+    });
+    fetch('header.html')
+      .then(r => r.text())
+      .then(html => {
+        document.getElementById('lemonania-header').innerHTML = html;
+      });
 </script>
   </body>
 </html>

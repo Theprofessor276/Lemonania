@@ -560,3 +560,16 @@ img {
 .form-wrapper button:hover {
   background-color: #ffc800;
 }
+      .special-redacted {
+        display: inline-block;
+        background: linear-gradient(90deg,#000 0 40%, #111 40% 60%, #000 60%);
+        color: #000;
+        border-radius: 3px;
+        padding: 0 10px;
+        box-shadow: 0 0 10px rgba(255,240,0,0.04) inset;
+        margin: 0 4px;
+        font-weight: 700;
+        letter-spacing: 2px;
+      }
+      /* Utility for screen-reader-only text */
+      .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
