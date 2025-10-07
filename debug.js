@@ -355,4 +355,4 @@
       document.addEventListener("DOMContentLoaded", function() {
         showDebugUserStatus();
         showUserDebug();
-      }
+      });
