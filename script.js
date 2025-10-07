@@ -139,8 +139,8 @@ document.getElementById('accountArea').innerHTML = `
 
 
   <div class="form-actions">
-    <button type="button" onclick="registerUser()">Register</button>
-    <button type="button" onclick="loginUser()">Login</button>
+    <button type="button" style="font-family:'Lemon', 'Lobster', Arial, sans-serif;" onclick="registerUser()">Register</button>
+    <button type="button" style="font-family:'Lemon', 'Lobster', Arial, sans-serif;" onclick="loginUser()">Login</button>
   </div>
 
   <div id="accountMsg"></div>
