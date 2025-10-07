@@ -2,4 +2,4 @@ import { getBankBalance } from './debug.js';
 
 const user = getCurrentUser();
 const balance = getBankBalance(user);
-console.log(`Balance for ${user}: $${balance.toFixed(2)}`);
+document.getElementById('balance').innerHTML = `$${balance.toFixed(2)}`;
