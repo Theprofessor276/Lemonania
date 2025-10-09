@@ -573,3 +573,59 @@ img {
       }
       /* Utility for screen-reader-only text */
       .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+/* This is a secret for now */
+.lemmy {
+  position: fixed;
+  bottom: 2vw;
+  right: 2vw;
+  font-size: 2.5em;
+  z-index: 100;
+  background: #fff8dc;
+  border: 2px solid #ffd700;
+  border-radius: 50%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  width: 1.5em;
+  height: 1.5em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.lemmy img {
+  width: 0.8em;
+  height: 0.8em;
+}
+
+/* Now I have to remeber how css animations work */
+/*@keyframes lemmy-bounce {
+  0% {
+    transform: translateY(0) scaleY(1) scaleX(1);
+  }
+
+  25% {
+    transform: translateY(-50%) scaleY(1.3) scaleX(0.8);
+  }
+
+  40% {
+    transform: translateY(-100%) scaleY(1) scaleX(1);
+  }
+
+  65% {
+    transform: translateY(-50%) scaleY(0.8) scaleX(1.2);
+  }
+
+  80% {
+    transform: translateY(0) scaleY(0.7) scaleX(1.3);
+  }
+
+  100% {
+    transform: translateY(0) scaleY(1) scaleX(1);
+  }
+}
+
+.lemmy:hover {
+  animation: lemmy-bounce 1s;
+  animation-iteration-count: infinite;
+} */
+/* Or it could do it all for me without me asking and somehow know exactly what I want 🤔 */
