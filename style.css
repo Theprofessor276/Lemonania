@@ -591,41 +591,52 @@ img {
   justify-content: center;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-
 .lemmy img {
-  width: 0.8em;
-  height: 0.8em;
+  width: 2em;
+  height: 2em;
 }
 
 /* Now I have to remeber how css animations work */
-/*@keyframes lemmy-bounce {
+@keyframes lemmy-bounce {
   0% {
-    transform: translateY(0) scaleY(1) scaleX(1);
+    transform: translateY(0);
   }
-
-  25% {
-    transform: translateY(-50%) scaleY(1.3) scaleX(0.8);
+  50% {
+    transform: translateY(-100%);
   }
-
-  40% {
-    transform: translateY(-100%) scaleY(1) scaleX(1);
-  }
-
-  65% {
-    transform: translateY(-50%) scaleY(0.8) scaleX(1.2);
-  }
-
-  80% {
-    transform: translateY(0) scaleY(0.7) scaleX(1.3);
-  }
-
   100% {
-    transform: translateY(0) scaleY(1) scaleX(1);
+    transform: translateY(0);
   }
 }
 
-.lemmy:hover {
+.lemmy.active {
   animation: lemmy-bounce 1s;
-  animation-iteration-count: infinite;
-} */
+}
+.lemmy-button {
+  background-color: transparent;
+  background-repeat: no-repeat;
+  border: none;
+  cursor: pointer;
+  overflow: hidden;
+  outline: none;
+}
 /* Or it could do it all for me without me asking and somehow know exactly what I want 🤔 */
+.lemmy-message-box {
+  position: fixed;
+  bottom: 8vw;
+  right: 3vw;
+  max-width: 250px;
+  background: #fffde7;
+  border: 2px solid #ffd700;
+  border-radius: 1em;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  padding: 1em;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 1em;
+  line-height: 1.4;
+  display: none;}
+
+  @keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
