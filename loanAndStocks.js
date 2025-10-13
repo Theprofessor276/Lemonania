@@ -156,9 +156,28 @@ function renderMarket() {
       const sym = btn.dataset.sym;
       const qty = parseInt(prompt("How many shares to buy?", "1") || 0, 10);
       if (!qty || qty <= 0) return;
-      alert(`Bought ${qty} shares of ${sym}`);
-      if (sym === "NFTZ") {
-        stockBoosts[sym] = (stockBoosts[sym] || 0) + qty * 5;
+      const user = getCurrentUser();
+      if (!user) { alert('Please sign in to buy stocks.'); return; }
+      // attempt to buy via shared function which enforces bank rules
+      const ok = buyStock(user, sym, qty);
+      if (ok) {
+        alert(`Bought ${qty} shares of ${sym}`);
+        if (sym === "NFTZ") {
+          stockBoosts[sym] = (stockBoosts[sym] || 0) + qty * 5;
+        }
+        // re-render market to show updated prices/portfolio
+        renderMarket();
+      } else {
+        // determine likely reason for failure
+        const stocks = getStocks();
+        const price = stocks[sym] ? stocks[sym].price : 0;
+        const cost = +(price * qty).toFixed(2);
+        const bal = getBankBalance(user);
+        if (bal === cost) {
+          alert(`Purchase blocked: buying ${qty} ${sym} would reduce your Lemonania Bank balance to $0. Use another payment method or reduce quantity.`);
+        } else {
+          alert(`Insufficient funds to buy ${qty} ${sym}. Cost: ${formatPrice(cost)} — Your balance: ${formatPrice(bal)}`);
+        }
       }
     };
   });

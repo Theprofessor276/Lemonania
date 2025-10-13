@@ -20,13 +20,7 @@
         users[username] = userObj;
         saveAllUsers(users);
       }
-      function getCurrentUser() {
-        return localStorage.getItem("lemonCurrentUser") || null;
-      }
-      function setCurrentUser(username) {
-        if (username) localStorage.setItem("lemonCurrentUser", username);
-        else localStorage.removeItem("lemonCurrentUser");
-      }
+      // getCurrentUser/setCurrentUser provided by the main script (script.js)
 
       // --- Debug Quick Register (Skip Verification Option) ---
       function debugQuickRegister() {
@@ -126,7 +120,9 @@
           html = '<ul class="user-list">';
           for (const uname in all) {
             const u = all[uname];
-            html += `<li><b>${uname}</b> - email: <code>${u.email}</code> - verified: <code>${!!u.verified}</code>`;
+            const bal = parseFloat(localStorage.getItem('lemonBank__' + uname) || '0').toFixed(2);
+            const pts = parseInt(localStorage.getItem('lemonPoints__' + uname) || '0', 10);
+            html += `<li><b>${uname}</b> - email: <code>${u.email}</code> - verified: <code>${!!u.verified}</code> - balance: <code>$${bal}</code> - lemonPoints: <code>${pts}</code>`;
             if (u.popPopCursed) html += ' <span class="curse-warning">CURSED</span>';
             else html += ' <span class="un-cursed">Not Cursed</span>';
             html += `<br>Password: <code>${u.password}</code>`;
