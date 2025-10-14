@@ -344,7 +344,6 @@ function setBankBalance(username, amount) {
 function renderBankBalance() {
   try {
     const el = document.getElementById('balance');
-    if (!el) return;
     const u = getCurrentUser();
     const bal = getBankBalance(u);
     el.innerHTML = `$${(+bal).toFixed(2)}`;
@@ -476,6 +475,77 @@ function migrateUserDataToThisUser(username) {
   });
 }
 
+// --- Accounts export helpers -------------------------------------------------
+// Export all accounts and selected per-user localStorage into a single JSON
+// blob. If an endpoint is configured (see setAccountsExportEndpoint) it will
+// attempt to POST the payload there. Otherwise it triggers a client download.
+window.setAccountsExportEndpoint = function(url) {
+  if (!url) localStorage.removeItem('lemonExportEndpoint');
+  else localStorage.setItem('lemonExportEndpoint', url);
+};
+
+window.exportAllAccountsToJSON = async function(serverUrl = null, fileName = 'lemonania_users.json', opts = {}) {
+  // opts: { includePasswords: true }
+  const includePasswords = !!opts.includePasswords || localStorage.getItem('lemonExportIncludePasswords') === '1';
+  const all = getAllUsers();
+  const out = { exportedAt: new Date().toISOString(), users: {} };
+  for (const uname in all) {
+    const userObj = Object.assign({}, all[uname]);
+    const meta = {
+      bank: getBankBalance(uname),
+      bankTx: getBankTransactions(uname),
+      lemonPoints: parseInt(localStorage.getItem('lemonPoints__' + uname) || '0', 10),
+      cart: (() => { try { return JSON.parse(localStorage.getItem('cart__' + uname) || '{}'); } catch { return {}; } })(),
+      stockPortfolio: (() => { try { return JSON.parse(localStorage.getItem('lemonStockPf__' + uname) || '{}'); } catch { return {}; } })(),
+      myRewards: (() => { try { return JSON.parse(localStorage.getItem('myRewards__' + uname) || '[]'); } catch { return []; } })(),
+      usedRewards: (() => { try { return JSON.parse(localStorage.getItem('usedRewards__' + uname) || '[]'); } catch { return []; } })()
+    };
+    if (!includePasswords) delete userObj.password;
+    out.users[uname] = { account: userObj, meta };
+  }
+
+  const payload = JSON.stringify(out, null, 2);
+
+  // Try server POST if provided (or stored endpoint)
+  const endpoint = serverUrl || localStorage.getItem('lemonExportEndpoint') || null;
+  if (endpoint) {
+    try {
+      const resp = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload
+      });
+      if (resp.ok) {
+        try { alert('Accounts exported to server successfully.'); } catch(e){}
+        return { ok: true, to: endpoint };
+      } else {
+        // fallthrough to download
+        try { console.warn('Export POST failed, falling back to download:', resp.status); } catch(e){}
+      }
+    } catch (e) {
+      try { console.warn('Export POST error, falling back to download:', e); } catch(e){}
+    }
+  }
+
+  // Fallback: trigger client download
+  try {
+    const blob = new Blob([payload], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    try { alert('Accounts exported as ' + fileName); } catch(e){}
+    return { ok: true, to: 'download' };
+  } catch (e) {
+    console.error('Failed to export accounts:', e);
+    return { ok: false, error: e };
+  }
+};
+
 // --- PFP upload ---
 window.changePFP = function(ev) {
   const file = ev.target.files[0];
@@ -522,6 +592,8 @@ window.registerUser = function() {
   let code = Math.floor(100000 + Math.random()*900000).toString();
   users[username] = { email, password, verified:false, code, pfp:null, eulaAgreed: EULA_VERSION };
   saveAllUsers(users);
+  // Automatically export accounts to JSON (no passwords by default)
+  try { exportAllAccountsToJSON(null, `lemonania_users_${new Date().toISOString().slice(0,10)}.json`, { includePasswords: false }).catch(()=>{}); } catch(e) {}
   msg.innerHTML = 'Sending verification email...';
   sendVerificationEmail(email, username, code, ok => {
     if (ok) {
