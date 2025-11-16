@@ -340,6 +340,22 @@ function getBankBalance(username) {
 function setBankBalance(username, amount) {
   localStorage.setItem(getBankKey(username), Number(amount).toFixed(2));
 }
+// Update the visible bank balance on the page when bank changes
+function renderBankBalance() {
+  try {
+    const el = document.getElementById('balance');
+    const u = getCurrentUser();
+    const bal = getBankBalance(u);
+    el.innerHTML = `$${(+bal).toFixed(2)}`;
+  } catch (e) { /* ignore */ }
+}
+
+// Hook render into setBankBalance so updates reflect immediately
+const _origSetBankBalance = setBankBalance;
+setBankBalance = function(username, amount) {
+  _origSetBankBalance(username, amount);
+  try { renderBankBalance(); } catch (e) {}
+};
 function getBankTransactions(username) {
   try { return JSON.parse(localStorage.getItem(getBankTxKey(username))) || []; }
   catch { return []; }
@@ -459,6 +475,77 @@ function migrateUserDataToThisUser(username) {
   });
 }
 
+// --- Accounts export helpers -------------------------------------------------
+// Export all accounts and selected per-user localStorage into a single JSON
+// blob. If an endpoint is configured (see setAccountsExportEndpoint) it will
+// attempt to POST the payload there. Otherwise it triggers a client download.
+window.setAccountsExportEndpoint = function(url) {
+  if (!url) localStorage.removeItem('lemonExportEndpoint');
+  else localStorage.setItem('lemonExportEndpoint', url);
+};
+
+window.exportAllAccountsToJSON = async function(serverUrl = null, fileName = 'lemonania_users.json', opts = {}) {
+  // opts: { includePasswords: true }
+  const includePasswords = !!opts.includePasswords || localStorage.getItem('lemonExportIncludePasswords') === '1';
+  const all = getAllUsers();
+  const out = { exportedAt: new Date().toISOString(), users: {} };
+  for (const uname in all) {
+    const userObj = Object.assign({}, all[uname]);
+    const meta = {
+      bank: getBankBalance(uname),
+      bankTx: getBankTransactions(uname),
+      lemonPoints: parseInt(localStorage.getItem('lemonPoints__' + uname) || '0', 10),
+      cart: (() => { try { return JSON.parse(localStorage.getItem('cart__' + uname) || '{}'); } catch { return {}; } })(),
+      stockPortfolio: (() => { try { return JSON.parse(localStorage.getItem('lemonStockPf__' + uname) || '{}'); } catch { return {}; } })(),
+      myRewards: (() => { try { return JSON.parse(localStorage.getItem('myRewards__' + uname) || '[]'); } catch { return []; } })(),
+      usedRewards: (() => { try { return JSON.parse(localStorage.getItem('usedRewards__' + uname) || '[]'); } catch { return []; } })()
+    };
+    if (!includePasswords) delete userObj.password;
+    out.users[uname] = { account: userObj, meta };
+  }
+
+  const payload = JSON.stringify(out, null, 2);
+
+  // Try server POST if provided (or stored endpoint)
+  const endpoint = serverUrl || localStorage.getItem('lemonExportEndpoint') || null;
+  if (endpoint) {
+    try {
+      const resp = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload
+      });
+      if (resp.ok) {
+        try { alert('Accounts exported to server successfully.'); } catch(e){}
+        return { ok: true, to: endpoint };
+      } else {
+        // fallthrough to download
+        try { console.warn('Export POST failed, falling back to download:', resp.status); } catch(e){}
+      }
+    } catch (e) {
+      try { console.warn('Export POST error, falling back to download:', e); } catch(e){}
+    }
+  }
+
+  // Fallback: trigger client download
+  try {
+    const blob = new Blob([payload], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    try { alert('Accounts exported as ' + fileName); } catch(e){}
+    return { ok: true, to: 'download' };
+  } catch (e) {
+    console.error('Failed to export accounts:', e);
+    return { ok: false, error: e };
+  }
+};
+
 // --- PFP upload ---
 window.changePFP = function(ev) {
   const file = ev.target.files[0];
@@ -505,6 +592,8 @@ window.registerUser = function() {
   let code = Math.floor(100000 + Math.random()*900000).toString();
   users[username] = { email, password, verified:false, code, pfp:null, eulaAgreed: EULA_VERSION };
   saveAllUsers(users);
+  // Automatically export accounts to JSON (no passwords by default)
+  try { exportAllAccountsToJSON(null, `lemonania_users_${new Date().toISOString().slice(0,10)}.json`, { includePasswords: false }).catch(()=>{}); } catch(e) {}
   msg.innerHTML = 'Sending verification email...';
   sendVerificationEmail(email, username, code, ok => {
     if (ok) {
@@ -751,6 +840,46 @@ function patchGlobalFunctionsForAccounts() {
       localStorage.setItem("lemonPoints", String(Math.max(0, Math.floor(points))));
     }
   };
+  // Conversion rate: how many Lemon Points equal $1. Changeable.
+  const LEMON_POINTS_PER_DOLLAR = 100; // 100 points = $1.00
+
+  // Convert lemon points into bank balance. Attempts to add at least amountNeeded (dollars) to the user's bank.
+  // Returns true if conversion succeeded (added >= amountNeeded), false otherwise.
+  window.convertPointsToBank = function(username, amountNeeded) {
+    if (!username) return false;
+    const points = getLemonPoints();
+    if (!points || points <= 0) return false;
+    // how many dollars can we create from points
+    const maxDollars = Math.floor(points / LEMON_POINTS_PER_DOLLAR * 100) / 100; // two decimals
+    if (maxDollars <= 0) return false;
+    const toAdd = Math.min(maxDollars, amountNeeded);
+    // compute points to deduct (round up to nearest whole point)
+    const pointsToSpend = Math.ceil(toAdd * LEMON_POINTS_PER_DOLLAR);
+    // Deduct points and add to bank
+    setLemonPoints(Math.max(0, getLemonPoints() - pointsToSpend));
+    const bal = getBankBalance(username);
+    setBankBalance(username, +(bal + toAdd).toFixed(2));
+    updateLemonPointsDisplay();
+    try { renderAccountHeaderBtn(); } catch(e){}
+    return getBankBalance(username) >= amountNeeded;
+  };
+  // Spend all lemon points to top up the bank (useful when user chooses to spend everything)
+  // Returns the amount (in dollars) that was added to the bank.
+  window.spendAllPointsToBank = function(username) {
+    if (!username) return 0;
+    const points = getLemonPoints();
+    if (!points || points <= 0) return 0;
+    const dollars = Math.floor(points / LEMON_POINTS_PER_DOLLAR * 100) / 100;
+    if (dollars <= 0) return 0;
+    // compute points to deduct exactly
+    const pointsToSpend = Math.ceil(dollars * LEMON_POINTS_PER_DOLLAR);
+    setLemonPoints(Math.max(0, getLemonPoints() - pointsToSpend));
+    const bal = getBankBalance(username);
+    setBankBalance(username, +(bal + dollars).toFixed(2));
+    updateLemonPointsDisplay();
+    try { renderAccountHeaderBtn(); } catch(e){}
+    return dollars;
+  };
   window.getMyRewards = function() {
     const u = getCurrentUser();
     if (u) {
@@ -866,46 +995,7 @@ const CURRENCIES = {
 // All cart, points, and rewards functions below now use the patched functions above,
 // so everything is per-account if a user is logged in!
 
-function getLemonPointsDisplay() {
-  // For display purposes: show "no" if cursed
-  const u = getCurrentUser();
-  if (u) {
-    let userObj = getUser(u);
-    if (userObj && userObj.popPopCursed) return "no";
-  }
-  return getLemonPoints();
-}
 
-function updateLemonPointsDisplay() {
-  const elem = document.getElementById('lemonPointsDisplay');
-  if (elem) elem.innerText = getLemonPointsDisplay();
-}
-
-// Cart Count Utility
-function updateCartCount() {
-  const cart = loadCart();
-  let count = 0;
-  for (const item in cart) {
-    count += cart[item].quantity || 0;
-  }
-  const countElem = document.getElementById('cartCount');
-  if (countElem) countElem.innerText = count;
-}
-
-// Cart Controls
-function addToCart(itemName, price) {
-  const cart = loadCart();
-  if (!cart[itemName]) {
-    cart[itemName] = {
-      quantity: 1,
-      price: parseFloat(price)
-    };
-  } else {
-    cart[itemName].quantity += 1;
-  }
-  saveCart(cart);
-  updateCartCount();
-}
 
 function goToCart() {
   window.location.href = "cart.html";
@@ -1107,8 +1197,27 @@ function buyStock(username, symbol, qty) {
   const s = stocks[symbol]; if (!s) return false;
   const cost = +(s.price * qty).toFixed(2);
   const bal = getBankBalance(username);
-  if (bal < cost) return false;
-  setBankBalance(username, +(bal - cost).toFixed(2));
+  // If balance is insufficient, attempt to top up from Lemon Points
+  if (bal < cost) {
+    // ask user if they'd like to convert Lemon Points to cover the difference
+    const need = +(cost - bal).toFixed(2);
+    if (!confirm(`Not enough funds in Lemonania Bank. Convert Lemon Points to add ${formatPrice(need)} to your bank and complete the purchase? (OK to convert exact amount, Cancel to be asked to spend ALL points)`)) return false;
+    // Ask if user wants to spend all points instead of exact amount
+    // We can't prompt twice per confirm easily; show a second confirm to choose 'spend all'
+    const spendAll = confirm('Spend ALL your Lemon Points to top up your bank instead of just the required amount? (OK = Spend all, Cancel = only convert exact needed)');
+    let topped = false;
+    if (spendAll) {
+      const added = spendAllPointsToBank(username);
+      topped = added >= need;
+    } else {
+      topped = convertPointsToBank(username, need);
+    }
+    if (!topped) return false; // user couldn't/won't top up
+  }
+  // refresh balance after possible top-up
+  const newBal = getBankBalance(username);
+  if (newBal < cost) return false;
+  setBankBalance(username, +(newBal - cost).toFixed(2));
   addBankTransaction(username, { type: 'stock-buy', amount: cost, desc: `Buy ${qty} ${symbol}`, date: new Date().toISOString(), meta:{symbol, qty, price: s.price} });
   // portfolio stored in localStorage per user
   const pfKey = `lemonStockPf__${username}`;
@@ -1869,13 +1978,37 @@ function payNow() {
   if (currentUser) {
     try {
       const bal = getBankBalance(currentUser);
-      // If they have enough, offer to pay from bank
+      // If balance covers the total (including equal-to), offer to pay from bank
       if (typeof bal === 'number' && bal >= total && total > 0) {
         if (confirm(`You have ${formatPrice(bal)} in your Lemonania Bank. Pay ${formatPrice(total)} from your bank balance now?`)) {
           // debit bank and record transaction
           setBankBalance(currentUser, +(bal - total).toFixed(2));
           addBankTransaction(currentUser, { type: 'debit', amount: total, desc: 'Purchase', date: new Date().toISOString() });
           paidWithBank = true;
+        }
+      } else if (typeof bal === 'number' && bal < total && total > 0) {
+        // Offer to top up from Lemon Points
+        const need = +(total - bal).toFixed(2);
+        if (confirm(`You have ${formatPrice(bal)} in your Lemonania Bank. You need ${formatPrice(need)} more. Convert Lemon Points to cover the difference?`)) {
+          const spendAll = confirm('Spend ALL your Lemon Points to top up your bank instead of just the required amount? (OK = Spend all, Cancel = only convert exact needed)');
+          let ok = false;
+          if (spendAll) {
+            const added = spendAllPointsToBank(currentUser);
+            ok = added >= need;
+          } else {
+            ok = convertPointsToBank(currentUser, need);
+          }
+          if (ok) {
+            // refreshed balance
+            const newBal = getBankBalance(currentUser);
+            if (newBal >= total) {
+              setBankBalance(currentUser, +(newBal - total).toFixed(2));
+              addBankTransaction(currentUser, { type: 'debit', amount: total, desc: 'Purchase (points top-up)', date: new Date().toISOString() });
+              paidWithBank = true;
+            }
+          } else {
+            alert('Not enough Lemon Points to top up your bank balance. Use another payment method.');
+          }
         }
       }
     } catch (e) { /* ignore bank failures, fallback to normal payment */ }

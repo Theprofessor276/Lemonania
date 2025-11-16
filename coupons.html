@@ -108,36 +108,19 @@
   </div>
   <script src="script.js"></script>
   <script>
-    // Use Lemonania account-aware Lemon Points if available
-    function _getLemonPoints() {
-      if (typeof getLemonPoints === "function") {
-        let val = getLemonPoints();
-        return (typeof val === "number" || /^[0-9]+$/.test(val)) ? val : 0;
-      }
-      return Math.max(0, parseInt(localStorage.getItem('lemonPoints') || '0', 10));
-    }
-    function _setLemonPoints(points) {
-      if (typeof setLemonPoints === "function") setLemonPoints(points);
-      else localStorage.setItem('lemonPoints', String(Math.max(0, Math.floor(points))));
-    }
+    // Use global Lemon Points helpers from script.js when available
     function spendLemonPoints(amount) {
-      let current = _getLemonPoints();
-      let spend = Math.max(0, Math.floor(amount));
-      if (current >= spend) {
-        _setLemonPoints(current - spend);
-        return true;
+      if (typeof getLemonPoints === "function" && typeof setLemonPoints === "function") {
+        const current = getLemonPoints();
+        const spend = Math.max(0, Math.floor(amount));
+        if (current >= spend) { setLemonPoints(current - spend); if (typeof updateLemonPointsDisplay === 'function') updateLemonPointsDisplay(); return true; }
+        return false;
       }
+      // fallback to localStorage
+      let current = Math.max(0, parseInt(localStorage.getItem('lemonPoints') || '0', 10));
+      const spend = Math.max(0, Math.floor(amount));
+      if (current >= spend) { localStorage.setItem('lemonPoints', String(current - spend)); if (typeof updateLemonPointsDisplay === 'function') updateLemonPointsDisplay(); return true; }
       return false;
-    }
-    function updateLemonPointsDisplay() {
-      const elem = document.getElementById('lemonPointsDisplay');
-      if (elem) {
-        if (typeof getLemonPointsDisplay === "function") {
-          elem.innerText = getLemonPointsDisplay();
-        } else {
-          elem.innerText = _getLemonPoints();
-        }
-      }
     }
     function getMyRewards() {
       if (typeof window.getMyRewards === "function") return window.getMyRewards();

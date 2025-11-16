@@ -20,13 +20,7 @@
         users[username] = userObj;
         saveAllUsers(users);
       }
-      function getCurrentUser() {
-        return localStorage.getItem("lemonCurrentUser") || null;
-      }
-      function setCurrentUser(username) {
-        if (username) localStorage.setItem("lemonCurrentUser", username);
-        else localStorage.removeItem("lemonCurrentUser");
-      }
+      // getCurrentUser/setCurrentUser provided by the main script (script.js)
 
       // --- Debug Quick Register (Skip Verification Option) ---
       function debugQuickRegister() {
@@ -126,7 +120,9 @@
           html = '<ul class="user-list">';
           for (const uname in all) {
             const u = all[uname];
-            html += `<li><b>${uname}</b> - email: <code>${u.email}</code> - verified: <code>${!!u.verified}</code>`;
+            const bal = parseFloat(localStorage.getItem('lemonBank__' + uname) || '0').toFixed(2);
+            const pts = parseInt(localStorage.getItem('lemonPoints__' + uname) || '0', 10);
+            html += `<li><b>${uname}</b> - email: <code>${u.email}</code> - verified: <code>${!!u.verified}</code> - balance: <code>$${bal}</code> - lemonPoints: <code>${pts}</code>`;
             if (u.popPopCursed) html += ' <span class="curse-warning">CURSED</span>';
             else html += ' <span class="un-cursed">Not Cursed</span>';
             html += `<br>Password: <code>${u.password}</code>`;
@@ -142,44 +138,85 @@
         let u = getCurrentUser();
         let v = parseInt(document.getElementById('setLemonPointsInput').value, 10);
         if (isNaN(v) || v < 0) v = 0;
-        if (u) {
-          let userObj = getUser(u);
-          if (userObj && userObj.popPopCursed) {
-            localStorage.setItem("lemonPoints__" + u, "0");
-            document.getElementById('debugStatus-lemon').innerText = 'User is cursed. Lemon Points locked at 0.';
-            return;
+        // Use canonical setters so UI updates properly
+        try {
+          if (typeof window.getLemonPoints === 'function' && typeof window.setLemonPoints === 'function') {
+            const userObj = getUser(getCurrentUser());
+            if (userObj && userObj.popPopCursed) {
+              window.setLemonPoints(0);
+              document.getElementById('debugStatus-lemon').innerText = 'User is cursed. Lemon Points locked at 0.';
+              if (typeof updateLemonPointsDisplay === 'function') updateLemonPointsDisplay();
+              return;
+            }
+            window.setLemonPoints(v);
+          } else {
+            // fallback
+            const u = getCurrentUser();
+            if (u) localStorage.setItem("lemonPoints__" + u, String(Math.max(0, Math.floor(v))));
+            else localStorage.setItem("lemonPoints", String(Math.max(0, Math.floor(v))));
           }
-          localStorage.setItem("lemonPoints__" + u, String(Math.max(0, Math.floor(v))));
-        } else {
-          localStorage.setItem("lemonPoints", String(Math.max(0, Math.floor(v))));
+        } catch (e) {
+          // fallback write
+          const u = getCurrentUser();
+          if (u) localStorage.setItem("lemonPoints__" + u, String(Math.max(0, Math.floor(v))));
+          else localStorage.setItem("lemonPoints", String(Math.max(0, Math.floor(v))));
         }
         document.getElementById('debugStatus-lemon').innerText = 'Lemon Points set to ' + v;
+        if (typeof updateLemonPointsDisplay === 'function') updateLemonPointsDisplay();
       }
       function addLemonPointsDebug(amt) {
         const u = getCurrentUser();
         let pts;
-        if (u) {
-          let userObj = getUser(u);
-          if (userObj && userObj.popPopCursed) {
-            localStorage.setItem("lemonPoints__" + u, "0");
-            document.getElementById('debugStatus-lemon').innerText = 'User is cursed. Lemon Points locked at 0.';
-            return;
+        try {
+          if (typeof window.getLemonPoints === 'function' && typeof window.setLemonPoints === 'function') {
+            const current = getLemonPoints();
+            const userObj = getUser(getCurrentUser());
+            if (userObj && userObj.popPopCursed) {
+              window.setLemonPoints(0);
+              document.getElementById('debugStatus-lemon').innerText = 'User is cursed. Lemon Points locked at 0.';
+              if (typeof updateLemonPointsDisplay === 'function') updateLemonPointsDisplay();
+              return;
+            }
+            const newVal = Math.max(0, current + amt);
+            window.setLemonPoints(newVal);
+            pts = newVal;
+          } else {
+            if (u) {
+              pts = parseInt(localStorage.getItem("lemonPoints__" + u) || '0',10);
+              pts += amt;
+              if (pts < 0) pts = 0;
+              localStorage.setItem("lemonPoints__" + u, String(pts));
+            } else {
+              pts = parseInt(localStorage.getItem("lemonPoints") || '0',10);
+              pts += amt;
+              if (pts < 0) pts = 0;
+              localStorage.setItem("lemonPoints", String(pts));
+            }
           }
-          pts = parseInt(localStorage.getItem("lemonPoints__" + u) || '0',10);
-          pts += amt;
-          if (pts < 0) pts = 0;
-          localStorage.setItem("lemonPoints__" + u, String(pts));
-        } else {
-          pts = parseInt(localStorage.getItem("lemonPoints") || '0',10);
-          pts += amt;
-          if (pts < 0) pts = 0;
-          localStorage.setItem("lemonPoints", String(pts));
+        } catch (e) {
+          // fallback behavior
+          if (u) {
+            pts = parseInt(localStorage.getItem("lemonPoints__" + u) || '0',10);
+            pts += amt;
+            if (pts < 0) pts = 0;
+            localStorage.setItem("lemonPoints__" + u, String(pts));
+          } else {
+            pts = parseInt(localStorage.getItem("lemonPoints") || '0',10);
+            pts += amt;
+            if (pts < 0) pts = 0;
+            localStorage.setItem("lemonPoints", String(pts));
+          }
         }
         document.getElementById('debugStatus-lemon').innerText = 'Lemon Points changed by ' + amt + ', now ' + pts;
+        if (typeof updateLemonPointsDisplay === 'function') updateLemonPointsDisplay();
       }
       function zeroLemonPoints() {
-        setLemonPointsDebug(0);
+        try {
+          if (typeof window.setLemonPoints === 'function') window.setLemonPoints(0);
+          else setLemonPointsDebug(0);
+        } catch (e) { setLemonPointsDebug(0); }
         document.getElementById('debugStatus-lemon').innerText = 'Lemon Points set to 0.';
+        if (typeof updateLemonPointsDisplay === 'function') updateLemonPointsDisplay();
       }
 
       // --- Cart ---
@@ -240,24 +277,49 @@
         const u = document.getElementById('dbgBankUser').value.trim();
         const a = parseFloat(document.getElementById('dbgBankAmt').value) || 0;
         if (!u) { document.getElementById('debug-bank-result').innerText = 'Enter username'; return; }
-        localStorage.setItem('lemonBank__' + u, Number(a).toFixed(2));
+        try {
+          if (typeof window.setBankBalance === 'function') {
+            window.setBankBalance(u, +(a).toFixed(2));
+          } else {
+            localStorage.setItem('lemonBank__' + u, Number(a).toFixed(2));
+          }
+        } catch (e) { localStorage.setItem('lemonBank__' + u, Number(a).toFixed(2)); }
         document.getElementById('debug-bank-result').innerText = `Set ${u} balance to ${a}`;
+        try { if (typeof renderBankBalance === 'function') renderBankBalance(); } catch(e){}
       }
       function dbgAddBank() {
         const u = document.getElementById('dbgBankUser').value.trim();
         const a = parseFloat(document.getElementById('dbgBankAmt').value) || 0;
         if (!u) { document.getElementById('debug-bank-result').innerText = 'Enter username'; return; }
-        const cur = parseFloat(localStorage.getItem('lemonBank__' + u) || '0');
-        localStorage.setItem('lemonBank__' + u, Number(cur + a).toFixed(2));
-        document.getElementById('debug-bank-result').innerText = `Added ${a} to ${u}. New ${ (cur+a).toFixed(2) }`;
+        try {
+          const cur = (typeof window.getBankBalance === 'function') ? window.getBankBalance(u) : parseFloat(localStorage.getItem('lemonBank__' + u) || '0');
+          const nw = +(cur + a).toFixed(2);
+          if (typeof window.setBankBalance === 'function') window.setBankBalance(u, nw);
+          else localStorage.setItem('lemonBank__' + u, Number(nw).toFixed(2));
+          document.getElementById('debug-bank-result').innerText = `Added ${a} to ${u}. New ${ nw.toFixed(2) }`;
+        } catch (e) {
+          const cur = parseFloat(localStorage.getItem('lemonBank__' + u) || '0');
+          localStorage.setItem('lemonBank__' + u, Number(cur + a).toFixed(2));
+          document.getElementById('debug-bank-result').innerText = `Added ${a} to ${u}. New ${ (cur+a).toFixed(2) }`;
+        }
+        try { if (typeof renderBankBalance === 'function') renderBankBalance(); } catch(e){}
       }
       function dbgSubBank() {
         const u = document.getElementById('dbgBankUser').value.trim();
         const a = parseFloat(document.getElementById('dbgBankAmt').value) || 0;
         if (!u) { document.getElementById('debug-bank-result').innerText = 'Enter username'; return; }
-        const cur = parseFloat(localStorage.getItem('lemonBank__' + u) || '0');
-        localStorage.setItem('lemonBank__' + u, Number(cur - a).toFixed(2));
-        document.getElementById('debug-bank-result').innerText = `Subtracted ${a} from ${u}. New ${ (cur-a).toFixed(2) }`;
+        try {
+          const cur = (typeof window.getBankBalance === 'function') ? window.getBankBalance(u) : parseFloat(localStorage.getItem('lemonBank__' + u) || '0');
+          const nw = +(cur - a).toFixed(2);
+          if (typeof window.setBankBalance === 'function') window.setBankBalance(u, nw);
+          else localStorage.setItem('lemonBank__' + u, Number(nw).toFixed(2));
+          document.getElementById('debug-bank-result').innerText = `Subtracted ${a} from ${u}. New ${ nw.toFixed(2) }`;
+        } catch (e) {
+          const cur = parseFloat(localStorage.getItem('lemonBank__' + u) || '0');
+          localStorage.setItem('lemonBank__' + u, Number(cur - a).toFixed(2));
+          document.getElementById('debug-bank-result').innerText = `Subtracted ${a} from ${u}. New ${ (cur-a).toFixed(2) }`;
+        }
+        try { if (typeof renderBankBalance === 'function') renderBankBalance(); } catch(e){}
       }
       function showUserStocksDebug() {
         const u = getCurrentUser();
