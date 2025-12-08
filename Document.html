@@ -1,0 +1,196 @@
+<!--
+  File: c:\Users\okeef\Documents\GitHub\Lemonania\Document.html
+  Purpose: Read a `code` query parameter from the URL and redirect the player
+           to a corresponding document. If the code is missing or invalid,
+           the page redirects to `error.html`.
+  Notes:
+    - Edit the `CODE_MAP` object below to add or change codes and target files.
+    - Uses `window.location.replace()` so the redirect doesn't leave this
+      intermediate page in the browser history.
+    - Includes a simple no-JS fallback form so players without JavaScript can
+      still attempt to access documents.
+-->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Document Redirect - Lemonania</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+      /* Small inline styles to keep this page readable on its own */
+      body{font-family:Segoe UI,Helvetica,Arial,sans-serif;margin:3rem;color:#111}
+      .card{max-width:640px;margin:0 auto;padding:1.25rem;border-radius:8px;background:#fff8e6;border:1px solid #ffe99a}
+      .muted{color:#555;font-size:0.95rem}
+      label,input{display:block;width:100%;box-sizing:border-box;margin-top:.5rem}
+      input[type=text]{padding:.5rem;border:1px solid #ccc;border-radius:4px}
+      button{margin-top:.75rem;padding:.5rem .75rem;border-radius:6px;background:#f7c948;border:0}
+    </style>
+  </head>
+  <body>
+    <main class="card" role="main">
+      <h1>Document Portal</h1>
+      <p class="muted">Open this page with a code in the URL, for example <code>?code=secret-menu</code>.</p>
+      <div id="status">Waiting for code…</div>
+      <section id="documentContainer" aria-live="polite" style="margin-top:1rem"></section>
+    </main>
+
+    <script>
+      // Map of allowed codes to inline HTML snippets (no external fetch).
+      // Put the document content here as HTML strings. These are injected
+      // directly into `#documentContainer` when a valid code is provided.
+      // Keep snippets minimal and avoid site-wide headers/footers to prevent
+      // duplicate UI (for example carts or nav bars).
+      const CODE_MAP = {
+        'secret-menu': `
+          <article>
+            <h2>Secret Menu</h2>
+            <p>Welcome, agent. This is the secret Lemonania menu. Enjoy the hidden
+            lemon delights and follow the clues carefully.</p>
+            <p><strong>Clue:</strong> The rind points north.</p>
+          </article>
+        `,
+        'menu': `
+          <article>
+            <h2>Main Menu (Excerpt)</h2>
+            <p>Here's a small selection of our items specially prepared for this ARG.</p>
+            <ul>
+              <li>Lemon Tart — mystery syrup</li>
+              <li>Zesty Soda — glows faintly under moonlight</li>
+            </ul>
+          </article>
+        `,
+        'qr': `
+          <article>
+            <h2>QR Redirect Instructions</h2>
+            <p>This document contains the QR clue: scan the lemon to continue.</p>
+          </article>
+        `,
+        'debug': `
+          <article>
+            <h2>Developer Notes</h2>
+            <p>Debug information and puzzle author notes (for testing only).</p>
+          </article>
+        `,
+        'about': `
+          <article>
+            <h2>About Lemonania — Secret Annex</h2>
+            <p>You found a hidden about page. Congratulations — patience is a virtue.</p>
+          </article>
+        `,
+        'merch': `
+          <article>
+            <h2>Merch Catalogue Excerpt</h2>
+            <p>Limited-run lemon hats. Not available to regular customers.</p>
+          </article>
+        `
+        ,
+        'begining of the end': `
+          <article>
+            <h2>[BEGIN TRANSCRIPT — INTERNAL MEETING LOG]</h2>
+            <pre style="white-space:pre-wrap;background:#fffefd;border-radius:6px;padding:1rem;border:1px solid #efe1b8">
+276: Boss… I’m begging you. Please reconsider. The consequences of this decision will be far greater than you’re anticipating. I’m genuinely worried this could end everything.
+
+Boss: Enough, 276. I’m warning you—if you raise this again, you’re dismissed.
+
+276: …Yes, boss.
+
+Boss: Good. Now get back to work.
+            </pre>
+            <p style="font-size:0.9rem;color:#444;margin-top:.5rem">[END TRANSCRIPT]</p>
+          </article>
+        `
+      };
+
+      // No external audio files are used. A short generated chime is played
+      // locally with the Web Audio API to indicate success.
+
+      // Helper: get `code` query parameter (case-insensitive)
+      function getCodeFromUrl() {
+        const params = new URLSearchParams(window.location.search);
+        const raw = params.get('code');
+        if (!raw) return null;
+        return raw.trim().toLowerCase();
+      }
+      // Load a document file into the page (fetch + inject) instead of redirecting.
+      async function loadDocument(target) {
+        const container = document.getElementById('documentContainer');
+        const statusEl = document.getElementById('status');
+        statusEl.textContent = `Loading ${target}…`;
+        try {
+          const res = await fetch(target, {cache: 'no-store'});
+          if (!res.ok) throw new Error('Fetch failed');
+          const text = await res.text();
+          // Parse the HTML and inject body content only to avoid duplicate <head>
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(text, 'text/html');
+          const bodyHtml = doc.body ? doc.body.innerHTML : text;
+          container.innerHTML = bodyHtml;
+          statusEl.textContent = `Loaded ${target}`;
+        } catch (err) {
+          statusEl.textContent = 'Failed to load document — redirecting to error page.';
+          setTimeout(()=> window.location.replace('error.html'), 700);
+        }
+      }
+
+      // Play a short chime (Web Audio) or an audio file mapped in CODE_SOUND_MAP
+      function playSoundForCode(code) {
+        const mapped = CODE_SOUND_MAP[code];
+        if (mapped) {
+          const audio = new Audio(mapped);
+          audio.play().catch(()=>{});
+          return;
+        }
+
+        // Fallback: small generated chime
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.type = 'sine';
+          o.frequency.value = 880;
+          g.gain.value = 0.001;
+          o.connect(g);
+          g.connect(ctx.destination);
+          const now = ctx.currentTime;
+          g.gain.setValueAtTime(0.001, now);
+          g.gain.exponentialRampToValueAtTime(0.12, now + 0.02);
+          o.start(now);
+          g.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+          o.stop(now + 0.26);
+          // Close context after short delay to free resources
+          setTimeout(()=> ctx.close().catch(()=>{}), 500);
+        } catch(e) {
+          // Ignore audio errors
+        }
+      }
+
+      (function main(){
+        const statusEl = document.getElementById('status');
+        const container = document.getElementById('documentContainer');
+        const code = getCodeFromUrl();
+        if (!code) {
+          // No code provided — do nothing (per request). Keep the page idle.
+          statusEl.textContent = 'No code provided.';
+          container.innerHTML = '';
+          return;
+        }
+
+        // If code exists, inject inline HTML and play chime. Otherwise show error message.
+        const snippet = CODE_MAP[code];
+        if (snippet) {
+          statusEl.textContent = 'Code recognized — displaying document.';
+          // Inject sanitized snippet (we control strings so it's safe here)
+          container.innerHTML = snippet;
+          // indicate success with audio chime
+          playSoundForCode(code);
+          // Normalize URL to lowercase code (no new history entry)
+          history.replaceState(null, '', `${location.pathname}?code=${encodeURIComponent(code)}`);
+        } else {
+          statusEl.textContent = 'Code not recognized.';
+          container.innerHTML = '';
+        }
+      })();
+    </script>
+  </body>
+</html>
