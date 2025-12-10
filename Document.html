@@ -30,7 +30,7 @@
   <body>
     <main class="card" role="main">
       <h1>Document Portal</h1>
-      <p class="muted">Open this page with a code in the URL, for example <code>?code=secret-menu</code>.</p>
+      <p class="muted">Open this page with a code in the URL, for example <code>?code=employee-handbook</code>.</p>
       <div id="status">Waiting for code…</div>
       <section id="documentContainer" aria-live="polite" style="margin-top:1rem"></section>
     </main>
@@ -42,49 +42,7 @@
       // Keep snippets minimal and avoid site-wide headers/footers to prevent
       // duplicate UI (for example carts or nav bars).
       const CODE_MAP = {
-        'secret-menu': `
-          <article>
-            <h2>Secret Menu</h2>
-            <p>Welcome, agent. This is the secret Lemonania menu. Enjoy the hidden
-            lemon delights and follow the clues carefully.</p>
-            <p><strong>Clue:</strong> The rind points north.</p>
-          </article>
-        `,
-        'menu': `
-          <article>
-            <h2>Main Menu (Excerpt)</h2>
-            <p>Here's a small selection of our items specially prepared for this ARG.</p>
-            <ul>
-              <li>Lemon Tart — mystery syrup</li>
-              <li>Zesty Soda — glows faintly under moonlight</li>
-            </ul>
-          </article>
-        `,
-        'qr': `
-          <article>
-            <h2>QR Redirect Instructions</h2>
-            <p>This document contains the QR clue: scan the lemon to continue.</p>
-          </article>
-        `,
-        'debug': `
-          <article>
-            <h2>Developer Notes</h2>
-            <p>Debug information and puzzle author notes (for testing only).</p>
-          </article>
-        `,
-        'about': `
-          <article>
-            <h2>About Lemonania — Secret Annex</h2>
-            <p>You found a hidden about page. Congratulations — patience is a virtue.</p>
-          </article>
-        `,
-        'merch': `
-          <article>
-            <h2>Merch Catalogue Excerpt</h2>
-            <p>Limited-run lemon hats. Not available to regular customers.</p>
-          </article>
-        `
-        ,
+
         'begining of the end': `
           <article>
             <h2>[BEGIN TRANSCRIPT — INTERNAL MEETING LOG]</h2>
@@ -99,6 +57,30 @@ Boss: Good. Now get back to work.
             </pre>
             <p style="font-size:0.9rem;color:#444;margin-top:.5rem">[END TRANSCRIPT]</p>
           </article>
+        `,
+        'you can go back': `
+          <article>
+            <h2>[BEGIN TRANSCRIPT — INTERNAL MEETING LOG]</h2>
+            <pre style="white-space:pre-wrap;background:#fffefd;border-radius:6px;padding:1rem;border:1px solid #efe1b8">
+456: Did you talk to him?
+276: Yes of course I did and hes being unreasonable just as he was with Project [REDACTED]
+456: And we both know how that went I cant belive they are still using it
+276: They removed him from the front page I can tell someone is concerned about it
+456: Watch it he'll be back up there in a couple weeks 
+276: And maybe when we are done with this we'll finaly be able to Go home
+456: Why do we have to use these stupid Transcript thingys again?
+[noise]
+ 276: Don't tap on the microphone and you should remeber its for-
+[AUDIO CUT]
+[Audio seems corrupted suppling for review]
+            </pre>
+            <p style="font-size:0.9rem;color:#444;margin-top:.5rem">[END TRANSCRIPT]</p>
+            <p style="font-size:0.9rem;color:#444;margin-top:.5rem">Some audio seems corrupted suppling for review</p>
+          </article>
+          <audio controls preload="none" style="margin-top:.5rem;display:block">
+            <source src="Corrupt transcript audio .wav" type="audio/wav">
+            Your browser does not support the audio element.
+          </audio>
         `
       };
 
